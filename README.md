@@ -99,16 +99,14 @@ npm test          # unified gate → test-all.mjs runs every governance sub-suit
 | **root** | `npm run test:root` (`node --test tests/*.test.js`) | the 5 `rubric.md` checks: OKR baseline · classification coverage · misalignment detected · ratified decision anchored · report reconciles to $284 ±$1 | 12 |
 | **plugin** | `npm run test:plugin` | plugin manifest + consent gate, bounded-agent refusal, `/try-liminal` deliberation, correction round-trip | 5 |
 | **provenance** | `npm run test:provenance` | hash determinism + golden vector, chain integrity + byte-flip tamper detection, INSERT-only immutability, reconcile ±$1, local-first no-network anchoring, contract drift-guard | 18 |
+| **engine** | `npm run test:engine` | deterministic seat-utilization `analyze` + reconcile, provenance-`anchor` of findings, and the bounded `enforceCap` agent's cap/out-of-lane refusals | 16 |
 
-All green = **35 checks**. The `provenance/` suite needs its deps installed + built first; `test-all.mjs`
-does that on first run (one-time network), then reuses `node_modules` + `dist`. The deterministic core
-regenerates `out/report.json` byte-identically on a re-run, so another team can re-verify "done"
-tomorrow on a fresh dataset in one command.
-
-> `engine/` ships its own suite (`npm --prefix engine test`) — deterministic `analyze`/`anchor` checks
-> plus a bounded `enforceCap` agent (its one live-Opus assertion auto-skips without `ANTHROPIC_API_KEY`).
-> It is built-today (see `CONTRIBUTIONS.md`) but not yet folded into the unified gate; add it to the
-> `SUITES` in `test-all.mjs` to include it.
+All green = **51 checks** (one `engine` live-Opus assertion auto-skips without `ANTHROPIC_API_KEY`, so
+CI runs **50 pass + 1 skip**). The `provenance/` and `engine/` suites need their deps installed (and
+`provenance/` built) first; `test-all.mjs` does that on first run (one-time network) and runs `engine`
+**after** `provenance` because it imports the built provenance dist — then reuses `node_modules` + `dist`.
+The deterministic core regenerates `out/report.json` byte-identically on a re-run, so another team can
+re-verify "done" tomorrow on a fresh dataset in one command.
 
 ### CI
 `.github/workflows/ci.yml` runs the unified `npm test` on every push and pull request (Node 22), so the

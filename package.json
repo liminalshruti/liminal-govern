@@ -8,6 +8,7 @@
     "test": "node test-all.mjs",
     "test:root": "node --test tests/*.test.js",
     "test:plugin": "npm --prefix plugin test",
-    "test:provenance": "npm --prefix provenance test"
+    "test:provenance": "npm --prefix provenance test",
+    "test:engine": "npm --prefix engine test"
   }
 }

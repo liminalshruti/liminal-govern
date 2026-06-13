@@ -11,10 +11,10 @@
 //   plugin      plugin/test/*.test.js      — zero-dep (node:sqlite). Bounded-agent + correction loop.
 //   provenance  provenance/tests/*.test.ts — needs `npm install` + `npm run build` first; this
 //                                            runner installs+builds on first run, then reuses.
-//
-// Note: `engine/` ships its own suite (`npm --prefix engine test`) but is intentionally
-// NOT in this gate yet — see README "How 'done' is verified". The integration owner can
-// fold it in by adding it to SUITES below.
+//   engine      engine/tests/*.test.ts     — needs `npm install` (tsx) first AND the built
+//                                            provenance dist (it imports ../../provenance/dist),
+//                                            so it runs AFTER provenance. Its one live-Opus
+//                                            assertion auto-skips without ANTHROPIC_API_KEY.
 //
 // Any suite failure fails the whole run (exit 1). Run from the repo root: `npm test`.
 
@@ -47,7 +47,9 @@ if (!existsSync(join(provDir, 'node_modules'))) {
   provOk = sh('provenance install (npm ci)', npm, ['ci'], provDir)
         || sh('provenance install (npm install)', npm, ['install'], provDir);
 }
-if (provOk && !existsSync(join(provDir, 'dist', 'index.js'))) {
+// Emit layout is dist/src/index.js (tsconfig rootDir "." preserves the src/ path), which is also
+// the concrete file engine imports — so this is the right thing to check + build for.
+if (provOk && !existsSync(join(provDir, 'dist', 'src', 'index.js'))) {
   provOk = sh('provenance build', npm, ['run', 'build'], provDir);
 }
 if (provOk) {
@@ -56,6 +58,24 @@ if (provOk) {
   process.stdout.write('\n[provenance] skipped tests — install/build failed (network needed once for deps).\n');
 }
 results.push(['provenance  (provenance/tests/)', provOk]);
+
+// 4) engine suite — runs AFTER provenance (imports its built dist). Install deps (tsx) on first run.
+const engDir = join(root, 'engine');
+let engOk = provOk; // engine needs provenance's dist; if provenance didn't build, engine can't run.
+if (!engOk) {
+  process.stdout.write('\n[engine] skipped — needs provenance/dist (provenance step did not complete).\n');
+} else {
+  if (!existsSync(join(engDir, 'node_modules'))) {
+    engOk = sh('engine install (npm ci)', npm, ['ci'], engDir)
+         || sh('engine install (npm install)', npm, ['install'], engDir);
+  }
+  if (engOk) {
+    engOk = sh('engine suite', npm, ['test'], engDir);
+  } else {
+    process.stdout.write('\n[engine] skipped tests — install failed (network needed once for deps).\n');
+  }
+}
+results.push(['engine      (engine/tests/)', engOk]);
 
 // summary
 process.stdout.write('\n═══ unified test summary ═══\n');

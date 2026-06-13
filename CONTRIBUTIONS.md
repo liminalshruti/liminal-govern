@@ -41,7 +41,8 @@
   out-of-lane (governance without surveillance — it judges spend decisions, not people). Self-contained
   TypeScript package on `@anthropic-ai/sdk`; `npm test` covers deterministic `analyze`/reconcile and
   injected-ruling cap refusals, plus one live-Opus assertion that auto-skips without
-  `ANTHROPIC_API_KEY`. It is not yet folded into the unified root `npm test` gate (see README).
+  `ANTHROPIC_API_KEY`. Wired into the unified root `npm test` gate (runs after `provenance/`, whose
+  built dist it imports).
 - **`data/`** — the synthetic AI-usage governance fixture.
 - The end-to-end integration tying these into the demo flow.
 

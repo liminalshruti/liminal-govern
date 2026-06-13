@@ -2,7 +2,7 @@ name: CI
 
 # Re-verify the whole submission on every push + PR, so another team can rerun
 # "done" tomorrow in one command. This runs the unified gate: `npm test` →
-# test-all.mjs → root + plugin + provenance suites (rubric.md checks enforced in tests/).
+# test-all.mjs → root + plugin + provenance + engine suites (rubric.md checks enforced in tests/).
 on:
   push:
   pull_request:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   test:
-    name: unified npm test (root · plugin · provenance)
+    name: unified npm test (root · plugin · provenance · engine)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
