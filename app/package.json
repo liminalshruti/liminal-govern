@@ -5,12 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "bake": "node scripts/prebuild.mjs",
-    "prebuild": "node scripts/prebuild.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "capture-beats": "node scripts/capture-beats.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -21,7 +19,6 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
-    "playwright": "^1.48.0",
     "typescript": "^5.6.2",
     "vite": "^5.4.8"
   }

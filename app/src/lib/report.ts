@@ -1,25 +1,23 @@
 /**
- * report.ts — SINGLE SOURCE OF TRUTH for the cockpit (Build Day 2026-06-13).
+ * report.ts — consumes the orchestration lane's (S4) out/report.json.
  *
- * The cockpit reads the SAME artifact the S4 deliberation workflow and the PITCH
- * use: the engine's `out/report.json`. It is baked into the bundle at build time by
- * `scripts/prebuild.mjs` (copies `../out/report.json` → `src/generated/report.json`),
- * so the numbers on screen are byte-identical to the numbers in the deck.
+ * This is the REAL artifact emitted by `.claude/workflows/spend-audit.mjs` — the
+ * 8-agent deliberation + adversarial reviewer + the real provenance chain. It is
+ * vendored verbatim into public/data/report.json (from build-day/s4-orchestration).
+ * When S4 merges to main, drop its out/report.json in unchanged — no edits here.
  *
- * This is AI-spend GOVERNANCE, not a seat-utilization dashboard: Opus 4.8 usage is
- * classified against the team's OKRs, off-objective work is routed to registry-verified
- * lower-cost agents, every finding cites its evidence rows + carries a provenance anchor,
- * and one claim (E14 → $162) was REFUTED by adversarial review (PR-103) and dropped.
- *
- * Components never import this file's raw shape directly — they go through
- * src/lib/provenance.ts (the stable data seam). This module only types + loads it.
+ * The `provenance.anchored` block is the REAL provenance/ lib output (real SHA-256
+ * packet hashes, hash-linked, chain_verified). The cockpit reads its chain from here.
  */
 
-import reportJson from "../generated/report.json";
-
-// ───────────────────────────── report.json shape ─────────────────────────────
-
-export type FindingType = "agent_fit_routing" | "okr_misalignment";
+export interface OkrObjective {
+  id: string;
+  name: string;
+  allocation: number;
+  key_results: string[];
+  tracking_streams: string[];
+  aligned_task_categories: string[];
+}
 
 export interface ClassifiedUsage {
   event_id: string;
@@ -32,7 +30,7 @@ export interface ClassifiedUsage {
 
 export interface ReportFinding {
   finding_id: string;
-  type: FindingType;
+  type: "agent_fit_routing" | "okr_misalignment" | string;
   category?: string;
   employee?: string;
   recommended_action: string;
@@ -44,12 +42,12 @@ export interface ReportFinding {
   drop_reason?: string;
 }
 
-export interface Misalignment {
-  security_actual_pct: number;
-  security_target_pct: number;
-  delta_pct: number;
-  governed_model: string;
-  opus_total_usd: number;
+export interface AnchoredEntry {
+  packet_id: string;
+  packet_hash: string;
+  prev_hash: string | null;
+  anchor_chain: string;
+  anchor_network: string;
 }
 
 export interface RatifiedDecision {
@@ -65,31 +63,22 @@ export interface RatifiedDecision {
   };
 }
 
-export interface AnchoredEntry {
-  packet_id: string;
-  packet_hash: string;
-  prev_hash: string | null;
-  anchor_chain: string;
-  anchor_network: string;
-}
-
 export interface Report {
   generated_for: string;
   okr_baseline: {
     budget_period: string;
     approved_model: string;
     cohort: string[];
-    objectives: {
-      id: string;
-      name: string;
-      allocation: number;
-      key_results: string[];
-      tracking_streams: string[];
-      aligned_task_categories: string[];
-    }[];
+    objectives: OkrObjective[];
   };
   classified_usage: ClassifiedUsage[];
-  misalignment: Misalignment;
+  misalignment: {
+    security_actual_pct: number;
+    security_target_pct: number;
+    delta_pct: number;
+    governed_model: string;
+    opus_total_usd: number;
+  };
   findings: ReportFinding[];
   ratified_decision: RatifiedDecision;
   total_recommended_savings: number;
@@ -104,72 +93,14 @@ export interface Report {
   report_citations: string[];
 }
 
-/** The baked engine report — the one source of truth for every screen. */
-export const REPORT = reportJson as unknown as Report;
+let reportPromise: Promise<Report> | null = null;
 
-// ───────────────────────────── derived accessors ─────────────────────────────
-
-const usageById = new Map(REPORT.classified_usage.map((u) => [u.event_id, u]));
-
-/** Resolve a finding's cited evidence rows (E-codes) to classified usage events. */
-export function evidenceFor(rowIds: string[]): ClassifiedUsage[] {
-  return rowIds.map((id) => usageById.get(id)).filter((u): u is ClassifiedUsage => Boolean(u));
-}
-
-/** Findings still standing (anchored) — exclude any refuted/dropped claim. */
-export function liveFindings(): ReportFinding[] {
-  return REPORT.findings.filter((f) => !f.dropped);
-}
-
-/** Claims refuted by adversarial review and dropped from the chain (e.g. E14). */
-export function droppedFindings(): ReportFinding[] {
-  return REPORT.findings.filter((f) => f.dropped);
-}
-
-/** Opus 4.8 spend grouped by category, with objective alignment + share of total. */
-export interface CategorySpend {
-  category: string;
-  objective_id: string | null;
-  total_usd: number;
-  events: number;
-  on_objective: boolean;
-}
-
-export function spendByCategory(): CategorySpend[] {
-  const byCat = new Map<string, CategorySpend>();
-  for (const u of REPORT.classified_usage) {
-    const existing = byCat.get(u.category);
-    if (existing) {
-      existing.total_usd += u.est_cost_usd;
-      existing.events += 1;
-    } else {
-      byCat.set(u.category, {
-        category: u.category,
-        objective_id: u.objective_id,
-        total_usd: u.est_cost_usd,
-        events: 1,
-        on_objective: u.objective_id !== null,
-      });
-    }
+export async function loadReport(): Promise<Report> {
+  if (!reportPromise) {
+    reportPromise = fetch(`${import.meta.env.BASE_URL}data/report.json`).then((r) => {
+      if (!r.ok) throw new Error(`report ${r.status}`);
+      return r.json() as Promise<Report>;
+    });
   }
-  return [...byCat.values()].sort((a, b) => b.total_usd - a.total_usd);
+  return reportPromise;
 }
-
-/** Total classified Opus + Haiku spend across the cohort this period. */
-export function totalClassifiedSpend(): number {
-  return REPORT.classified_usage.reduce((s, u) => s + u.est_cost_usd, 0);
-}
-
-/** Headline figures, straight from the report (what the pitch quotes). */
-export const headline = {
-  period: REPORT.okr_baseline.budget_period,
-  approved_model: REPORT.okr_baseline.approved_model,
-  opus_total_usd: REPORT.misalignment.opus_total_usd,
-  ratified_savings: REPORT.total_recommended_savings,
-  naive_savings: REPORT.naive_savings,
-  dropped_usd: REPORT.naive_savings - REPORT.total_recommended_savings,
-  security_actual_pct: REPORT.misalignment.security_actual_pct,
-  security_target_pct: REPORT.misalignment.security_target_pct,
-  cohort_size: REPORT.okr_baseline.cohort.length,
-  events: REPORT.classified_usage.length,
-};

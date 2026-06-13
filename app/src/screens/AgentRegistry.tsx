@@ -1,84 +1,74 @@
+import { useEffect, useState } from "react";
 import { PageHeader } from "../components/Page";
-import { REPORT } from "../lib/report";
-import { usd } from "../lib/format";
 
-// Beat 4 (support) — the registry-verified, lower-cost agents that off-objective
-// Opus 4.8 work gets routed to. Derived from out/report.json findings.
-interface ApprovedAgent {
+// The agent registry — the verified agents findings can route to. Real data from
+// data/agent-registry.json (the trustless-registry beat): CalendarOps and
+// DigestBot are registry-verified and far cheaper than the frontier model, which
+// is exactly why the agent-fit findings recommend them.
+interface Agent {
   id: string;
   name: string;
-  handles: string;
-  routed_savings: number;
-  events: number;
-}
-
-function approvedAgents(): ApprovedAgent[] {
-  const byId = new Map<string, ApprovedAgent>();
-  for (const f of REPORT.findings) {
-    if (f.dropped || !f.approved_alternative_id || !f.approved_alternative) continue;
-    const existing = byId.get(f.approved_alternative_id);
-    if (existing) {
-      existing.routed_savings += f.monthly_savings;
-      existing.events += f.source_row_ids.length;
-    } else {
-      byId.set(f.approved_alternative_id, {
-        id: f.approved_alternative_id,
-        name: f.approved_alternative,
-        handles: f.category ?? "—",
-        routed_savings: f.monthly_savings,
-        events: f.source_row_ids.length,
-      });
-    }
-  }
-  return [...byId.values()].sort((a, b) => b.routed_savings - a.routed_savings);
+  type: string;
+  model?: string;
+  cost_tier: string;
+  cost_vs_opus?: string;
+  approved_for: string[];
+  verified: boolean;
+  provenance?: string;
+  publisher?: string;
 }
 
 export function AgentRegistry() {
-  const agents = approvedAgents();
-  const d = REPORT.ratified_decision;
+  const [agents, setAgents] = useState<Agent[] | null>(null);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}data/agent-registry.json`)
+      .then((r) => r.json())
+      .then((d) => setAgents(d.agents));
+  }, []);
 
   return (
     <>
       <PageHeader
-        title="Approved agents"
-        sub="Off-objective Opus 4.8 work is routed to registry-verified, lower-cost agents (~10% of Opus cost). The governed model stays on the approved track."
+        title="Agent registry"
+        sub="The verified agents the cockpit can route work to. Verification is provenance: a registry-verified agent trades frontier spend for a known, attestable identity — not a cheaper unknown."
       />
 
-      <div className="grid" style={{ gap: 16, marginBottom: 24 }}>
-        {/* The governed model */}
-        <div className="card agent-card">
-          <div className="head">
-            <div>
-              <strong>{REPORT.okr_baseline.approved_model}</strong>{" "}
-              <span className="badge">governed model</span>
-            </div>
-            <span className="mono">{usd(REPORT.misalignment.opus_total_usd)}/mo</span>
-          </div>
-          <p style={{ margin: 0 }}>
-            Allowed for {d.agent_policy.opus_4_8_allowed_for.join(", ").replace(/_/g, " ")}.
-            Refused for {d.agent_policy.opus_4_8_disallowed_for.join(", ").replace(/_/g, " ")}.
-          </p>
-        </div>
-
-        {agents.map((a) => (
-          <div className="card agent-card" key={a.id}>
-            <div className="head">
-              <div>
-                <strong>{a.name}</strong>{" "}
-                <span className="badge good">registry-verified</span>
+      {!agents ? (
+        <p>Loading registry…</p>
+      ) : (
+        <div className="grid cols-2">
+          {agents.map((a) => (
+            <div className="card" key={a.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontWeight: 650, fontSize: 15 }}>{a.name}</div>
+                  <div className="mono">{a.type}{a.model ? ` · ${a.model}` : ""}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {a.verified && <span className="badge good dot">verified</span>}
+                  <span className={`badge ${a.cost_tier === "high" ? "warn" : "accent"} dot`}>
+                    {a.cost_tier} cost{a.cost_vs_opus ? ` · ${a.cost_vs_opus}` : ""}
+                  </span>
+                </div>
               </div>
-              <span className="savings">{usd(a.routed_savings)}/mo reclaimed</span>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {a.approved_for.map((lane) => (
+                  <span key={lane} className="badge">{lane}</span>
+                ))}
+              </div>
+
+              {a.provenance && (
+                <div className="mono" style={{ borderTop: "1px solid var(--line-2)", paddingTop: 8 }}>
+                  provenance: {a.provenance}
+                  {a.publisher ? ` · ${a.publisher}` : ""}
+                </div>
+              )}
             </div>
-            <p style={{ margin: 0 }}>
-              Handles <strong>{a.handles.replace(/_/g, " ")}</strong> — {a.events} event(s)
-              routed off Opus 4.8 at ~10% of the cost.
-            </p>
-            <div className="mono" style={{ color: "var(--muted)" }}>
-              agent_id: {a.id} · approved alternative · {a.handles}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
