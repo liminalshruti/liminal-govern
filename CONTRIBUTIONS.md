@@ -4,8 +4,23 @@
 > event, and prior work is clearly distinguished. This repo is the standalone, extractable submission.
 
 ## Built during the event (2026-06-13) — the submission
-- **`provenance/`** — the local-first provenance chain (hash-linked append-only log, anchor receipts,
-  correction re-anchoring, decision/policy packets). Written fresh today.
+- **`provenance/`** — the local-first provenance chain (canonical packet hashing, append-only
+  hash-linked SQLite log, local/on-chain anchor receipts, corrections-as-new-entries that
+  re-anchor). Self-contained TypeScript package: `npm test` → 18 green (hash determinism + golden
+  vector, chain integrity with byte-flip tamper detection, INSERT-only immutability, reconcile
+  ±$1, local-first no-network anchoring, and a contract drift-guard); `npm run typecheck` clean;
+  CLI `ingest | verify | show | correct`. Written fresh today.
+  - Wire types **mirror** `coordination/contract.ts` (the shared contract) field-for-field; a
+    `tests/contract.test.ts` drift guard enforces the mirror stays identical and any change is
+    reconciled toward the contract. Mirrored — not imported — to keep `provenance/` extractable
+    and self-contained.
+  - **Prior art, re-implemented clean — NO private source copied:** the canonical packet-hash
+    scheme (`stableStringify` → SHA-256 over an anchor-excluded canonical payload, schema-tagged,
+    ordinal-sorted reads) mirrors the *shape* of `liminal-agents-v1`'s packet-hash primitive; the
+    append-only hash-linked log mirrors the *concept* of the `liminal-desktop` event-log crate
+    (INSERT-only, walk-to-verify). Both written fresh over Node `crypto` + `better-sqlite3`. The
+    anchor proof-shape helpers (`txidToBytes`/`isZero`) are clean re-implementations of the public
+    MIT `algorand-berlin-2026` hash-only anchoring helpers.
 - **`plugin/`** — the Claude Code plugin: `liminal setup`, the onboarding swarm, the SessionStart
   desktop-install hook, the bounded agent definitions, the `marketplace.json`. Authored today.
 - **`.claude/workflows/`** + **`rubric.md`** + **`tests/`** — the dynamic deliberation workflow
