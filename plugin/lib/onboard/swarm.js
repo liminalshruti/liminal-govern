@@ -8,7 +8,7 @@
  *
  * This is the shipped, lightweight version. It is deliberately:
  *   - LLM-free. Each scan is a cheap filesystem / git probe, not an Opus call.
- *     That sidesteps the deferred concern (three agents
+ *     That sidesteps the deferred concern from the design doc (three agents
  *     scanning in parallel would otherwise triple cold-start token cost) while
  *     still proving the swarm geometry end to end.
  *   - Read-only. It detects candidate streams; it does NOT ingest. Ingest is the
@@ -18,12 +18,12 @@
  *     contract runAllAgents (lib/agents/index.js) uses — so one source failing
  *     (e.g. Granola not installed) never loses the others.
  *
- * Wire type:
+ * Wire type (mirrors docs/specs/2026-06-13-swarm-onboarding.md):
  *   OnboardingStream { source, agent_owner, status, detail, count }
  *   status: "scanning"  — a candidate stream was found and is ready to ingest
  *           "pending"   — the source isn't present yet (nothing to scan)
  *
- * The bounded geometry (which agent owns which stream) is the shipped geometry:
+ * The bounded geometry (which agent owns which stream) matches the design doc:
  *   git / claude-code  → Analyst (facts: what was built, what changed)
  *   granola / calendar → SDR     (commitments: who, when, the next move)
  *   cross-stream       → Auditor (risks: gaps, drift across the other streams)
@@ -36,6 +36,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const pExec = promisify(execFile);
+
+// Agent set + runner are imported lazily inside bootstrapSwarm() so the cheap
+// scanStreams() path (and its tests) never pay the cost of loading the agent
+// graph or the Anthropic SDK. See bootstrapSwarm() below.
 
 // ── Stream registry — each entry is one parallel probe ─────────────────────
 // owner is the bounded agent whose lane the stream belongs to. probe() returns
@@ -121,7 +125,7 @@ async function probeGranola() {
   }
 }
 
-// calendar → SDR. No adapter ships yet (see "next"), so this
+// calendar → SDR. No adapter ships yet (see "next" in the design doc), so this
 // is always pending — it holds the slot in the swarm so the geometry is honest
 // about what's coming rather than hiding it.
 async function probeCalendar() {
@@ -200,6 +204,313 @@ export async function scanStreams() {
       streams_total: streams.length,
       streams_live: liveCount,
       cold_start: liveCount === 0,
+    },
+  };
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+//  Full swarm — parallel per-agent deliberation bootstrap
+// ───────────────────────────────────────────────────────────────────────────
+//
+// The lightweight scanStreams() above answers "what's here?". The bootstrap is
+// the deferred "next" from the design doc, now built: each bounded agent READS
+// its canonical source and POSTS A CANDIDATE — the one fact / commitment / risk
+// worth acting on — all in parallel under Promise.allSettled. This is what makes
+// the first deliberation warm: the vault opens with agent-authored candidates,
+// not an empty table.
+//
+// It stays inside the front-door invariants:
+//   - READ-ONLY. It reads source content (git log, Claude Code transcripts,
+//     Granola cache) and returns candidates in memory. It does NOT write the
+//     vault and does NOT mutate any source. Persisting candidates is the
+//     daemon's job; the bootstrap proves the swarm geometry without committing.
+//   - LLM-OPTIONAL. With an Anthropic credential each agent deliberates live on
+//     Opus; without one (or with LIMINAL_SWARM_FIXTURE=1) it falls back to a
+//     labeled per-agent fixture so the beat always renders. Honest about which.
+//   - PARTIAL-RESULT SAFE. Per-agent reads run under Promise.allSettled — one
+//     agent failing never loses the others' candidates.
+
+const DIGEST_MAX_ITEMS = 12;
+const DIGEST_MAX_CHARS = 1800;
+
+// ── Read-only source digests — short text samples the owning agent reads ────
+
+async function digestGit() {
+  const repo = process.env.LIMINAL_GIT_REPO || process.cwd();
+  if (!fs.existsSync(path.join(repo, ".git"))) return "";
+  try {
+    const { stdout } = await pExec(
+      "git",
+      ["-C", repo, "log", "--since=30.days.ago", `-n${DIGEST_MAX_ITEMS}`, "--format=%s"],
+      { maxBuffer: 8 * 1024 * 1024 },
+    );
+    return clampDigest(
+      stdout
+        .split("\n")
+        .filter(Boolean)
+        .map((s) => `- ${s}`)
+        .join("\n"),
+    );
+  } catch {
+    return "";
+  }
+}
+
+function digestClaudeCode() {
+  const dir = path.join(os.homedir(), ".claude", "projects");
+  if (!fs.existsSync(dir)) return "";
+  const cutoff = recentCutoff();
+  const items = [];
+  for (const proj of safeReaddir(dir)) {
+    const projDir = path.join(dir, proj);
+    for (const f of safeReaddir(projDir)) {
+      if (!f.endsWith(".jsonl")) continue;
+      const full = path.join(projDir, f);
+      let stat;
+      try {
+        stat = fs.statSync(full);
+      } catch {
+        continue;
+      }
+      if (stat.mtimeMs < cutoff) continue;
+      const text = firstUserText(full);
+      if (text) items.push(`- ${oneLine(text)}`);
+      if (items.length >= DIGEST_MAX_ITEMS) break;
+    }
+    if (items.length >= DIGEST_MAX_ITEMS) break;
+  }
+  return clampDigest(items.join("\n"));
+}
+
+function digestGranola() {
+  const cache =
+    process.env.LIMINAL_GRANOLA_PATH ||
+    path.join(os.homedir(), "Library", "Application Support", "Granola", "cache-v6.json");
+  if (!fs.existsSync(cache)) return "";
+  let docs;
+  try {
+    docs = JSON.parse(fs.readFileSync(cache, "utf8"))?.cache?.state?.documents;
+  } catch {
+    return "";
+  }
+  if (!docs || typeof docs !== "object") return "";
+  const items = [];
+  for (const id of Object.keys(docs)) {
+    const d = docs[id];
+    if (!d || typeof d !== "object" || d.deleted_at) continue;
+    const title = (d.title || "").trim();
+    const summary = (d.summary || d.overview || d.notes_plain || "").trim();
+    if (!title && !summary) continue;
+    items.push(`- ${oneLine([title, summary].filter(Boolean).join(": "))}`);
+    if (items.length >= DIGEST_MAX_ITEMS) break;
+  }
+  return clampDigest(items.join("\n"));
+}
+
+// Read just the first user message text out of a JSONL transcript, cheaply.
+function firstUserText(file) {
+  let raw;
+  try {
+    raw = fs.readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    let evt;
+    try {
+      evt = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const role = evt.role || evt.message?.role || evt.type;
+    if (role !== "user" && role !== "user_message") continue;
+    const src = evt.message ?? evt;
+    if (typeof src.content === "string") return src.content;
+    if (Array.isArray(src.content)) {
+      const t = src.content.filter((b) => b.type === "text").map((b) => b.text).join(" ");
+      if (t) return t;
+    }
+  }
+  return null;
+}
+
+function oneLine(s) {
+  return String(s).replace(/\s+/g, " ").trim().slice(0, 160);
+}
+function clampDigest(s) {
+  return s.slice(0, DIGEST_MAX_CHARS);
+}
+
+// Source → read-only digest reader. Calendar has no adapter (the "next"), so it
+// has no digest and never produces a candidate.
+const DIGESTS = {
+  git: digestGit,
+  "claude-code": digestClaudeCode,
+  granola: digestGranola,
+};
+
+// ── Per-agent candidate prompts ─────────────────────────────────────────────
+// Each owning agent reads its source digest in lane and posts ONE candidate.
+// Because the stream is assigned to the agent that owns it, the in-lane agent
+// does the work (it does not refuse) — the bootstrap surfaces candidates, the
+// refusal beat lives in /try-liminal.
+
+function candidateBrief(agentName, source, digest) {
+  const lane = {
+    Analyst: "the one fact worth acting on — what was built or what changed that matters",
+    SDR: "the one commitment worth acting on — who, by when, the next move",
+    Auditor: "the one risk worth flagging — a gap, a stale commitment, or drift across the streams",
+  }[agentName];
+  return (
+    `Onboarding scan of the user's ${source} stream. Recent activity:\n${digest}\n\n` +
+    `As the ${agentName}, surface ${lane}. ` +
+    `One short paragraph — a candidate to seed the first deliberation, not a full report.`
+  );
+}
+
+// Cross-stream brief for the Auditor: the union of the other agents' candidates.
+function auditorBrief(candidates) {
+  const body = candidates
+    .map((c) => `${c.agent_owner} (${c.source}): ${oneLine(c.interpretation)}`)
+    .join("\n");
+  return (
+    `Onboarding scan across the user's streams. Candidates the other agents posted:\n${body}\n\n` +
+    `As the Auditor, surface the one risk worth flagging — a gap, a stale commitment, ` +
+    `or drift between these candidates. One short paragraph.`
+  );
+}
+
+// Labeled fixtures so the bootstrap renders without a credential. Kept generic
+// (no invented specifics) so we never imply a live read that didn't happen.
+const FIXTURE_CANDIDATE = {
+  Analyst:
+    "Recent activity centers on shipping and hardening one workstream. The candidate worth acting on is the most-touched area — treat its momentum as the spine of the next deliberation and confirm nothing downstream of it has gone stale.",
+  SDR:
+    "The candidate commitment is the most recent external thread that named a person and a time. The next move is to confirm whether that commitment was met or is now overdue before anything else gets queued.",
+  Auditor:
+    "The risk worth flagging is the seam between the streams: work is moving in one lane while commitments in another may not have been closed. Cross-check the open commitments against what actually shipped before acting.",
+};
+
+function detectRefusal(text) {
+  return /^\s*REFUSE\s*:/.test(text || "");
+}
+
+/**
+ * Run the full onboarding swarm: each bounded agent reads its live source and
+ * posts a candidate, in parallel. Read-only, LLM-optional.
+ *
+ * @param {object?} opts
+ * @param {boolean} opts.forceFixture  Force the fixture path (tests/offline).
+ * @returns {Promise<{ mode, candidates, summary }>}
+ *   candidates: [{ source, agent_owner, status:"ingested", interpretation,
+ *                  refused, mode }]
+ */
+export async function bootstrapSwarm(opts = {}) {
+  const { streams, summary } = await scanStreams();
+
+  // Live source streams (exclude the derived cross-stream entry) get a reader.
+  const liveSources = streams.filter(
+    (s) => s.status === "scanning" && s.source !== "cross-stream" && DIGESTS[s.source],
+  );
+
+  if (liveSources.length === 0) {
+    return {
+      mode: "cold",
+      candidates: [],
+      summary: { ...summary, candidates_total: 0, cold_start: true },
+    };
+  }
+
+  // Decide the inference mode once: live (Opus) if a credential exists and the
+  // caller didn't force fixture; otherwise the labeled fixture.
+  let client = null;
+  let runAgent = null;
+  let AGENT_BY_NAME = {};
+  let model;
+  const forceFixture =
+    opts.forceFixture || process.env.LIMINAL_SWARM_FIXTURE === "1";
+
+  if (!forceFixture) {
+    try {
+      const [{ makeClient }, agentsMod] = await Promise.all([
+        import("../anthropic-client.js"),
+        import("../agents/index.js"),
+      ]);
+      client = makeClient().client;
+      runAgent = agentsMod.runAgent;
+      model = agentsMod.OPUS_MODEL;
+      AGENT_BY_NAME = Object.fromEntries(
+        agentsMod.AGENCY_AGENTS.map((a) => [a.name, a]),
+      );
+    } catch {
+      client = null; // fall through to fixture
+    }
+  }
+
+  const live = Boolean(client && runAgent);
+
+  // Build a candidate from one (agent, source, digest) — live or fixture.
+  async function postCandidate(agentName, source, digest) {
+    const base = { source, agent_owner: agentName, status: "ingested" };
+    if (live) {
+      const agent = AGENT_BY_NAME[agentName];
+      const brief =
+        source === "cross-stream"
+          ? digest // already a composed brief
+          : candidateBrief(agentName, source, digest);
+      const res = await runAgent(client, agent, brief, null, model);
+      const text = res.interpretation || "";
+      return { ...base, interpretation: text, refused: detectRefusal(text), mode: "live" };
+    }
+    return {
+      ...base,
+      interpretation: FIXTURE_CANDIDATE[agentName],
+      refused: false,
+      mode: "fixture",
+    };
+  }
+
+  // Phase 1: every live source read in parallel by its owning agent.
+  const settled = await Promise.allSettled(
+    liveSources.map(async (s) => {
+      const digest = await DIGESTS[s.source]();
+      if (!digest) throw new Error(`empty digest for ${s.source}`);
+      return postCandidate(s.agent_owner, s.source, digest);
+    }),
+  );
+  const candidates = settled
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+
+  // Phase 2: the Auditor reads the union of the posted candidates and adds the
+  // cross-stream risk candidate — but only when there are ≥2 to cross-check
+  // (the same threshold scanStreams uses for the Auditor's seam).
+  if (candidates.length >= 2) {
+    try {
+      const auditCand = live
+        ? await postCandidate("Auditor", "cross-stream", auditorBrief(candidates))
+        : {
+            source: "cross-stream",
+            agent_owner: "Auditor",
+            status: "ingested",
+            interpretation: FIXTURE_CANDIDATE.Auditor,
+            refused: false,
+            mode: "fixture",
+          };
+      candidates.push(auditCand);
+    } catch {
+      // Auditor failing is non-fatal — keep the source candidates.
+    }
+  }
+
+  return {
+    mode: live ? "live" : "fixture",
+    candidates,
+    summary: {
+      ...summary,
+      candidates_total: candidates.length,
+      cold_start: candidates.length === 0,
     },
   };
 }

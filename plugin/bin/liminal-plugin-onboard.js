@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 /**
- * SessionStart onboarding hook for the liminal-govern plugin.
+ * SessionStart onboarding hook for the liminal-agents plugin.
  *
  * Fires once per session when the plugin is enabled (defaultEnabled:false, so
  * the user has already consented by enabling). Its job is the install moment:
  * convert "try it in the terminal" into "keep the vault on the machine." There
  * are two install lanes and it offers whichever is ready:
- *   1. Desktop DMG. If present, open it so the user can drag-install.
- *   2. Live web cockpit (Vercel). The govern cockpit install page — always
- *      available even before the DMG is built — so there is never a dead end.
- *      Mentioned alongside the DMG, or as the sole offer when the DMG hasn't
- *      been built yet. The URL is configurable via LIMINAL_COCKPIT_URL (see
- *      the cockpit section below) so it points at the live deployed cockpit.
+ *   1. Desktop DMG (S3 build). If present, open it so the user can drag-install.
+ *   2. Live web cockpit (Vercel). The /pilot install page on theliminalspace.io
+ *      — always available even before the DMG is built — so there is never a
+ *      dead end. Mentioned alongside the DMG, or as the sole offer when the DMG
+ *      hasn't been built yet.
  *
  * INVARIANTS
  *   - Idempotent. State is written to ${CLAUDE_PLUGIN_DATA}/onboard-state.json.
@@ -24,13 +23,10 @@
  *     break the user's session — every path exits 0.
  *   - Side-effect-light by default. Opening the DMG (a Finder mount) only
  *     happens on macOS, only when a real DMG is found, and only once. Set
- *     LIMINAL_ONBOARD_DRY_RUN=1 to skip the actual `open` (used by tests/CI).
+ *     LIMINAL_ONBOARD_DRY_RUN=1 to skip the actual `open` (used by tests and CI).
  *
  * SessionStart hooks communicate with the user via stdout (additionalContext
  * is surfaced to the session). We keep output to a couple of plain lines.
- *
- * PUBLIC-SAFE: no secrets, no private substrate. This is the plugin front door
- * verbatim from the prior-art liminal-agents substrate (see CONTRIBUTIONS.md).
  */
 
 import fs from "node:fs";
@@ -56,20 +52,21 @@ function dataDir() {
 
 const STATE_FILE = path.join(dataDir(), "onboard-state.json");
 
-// ── Candidate DMG locations (desktop build artifact) ──────────────────────
-// Primary is the Tauri release bundle path. Allow LIMINAL_DMG_PATH to point a
-// stub DMG at the demo without touching the desktop build.
+// ── Candidate DMG locations (S3 artifact) ─────────────────────────────────
+// Primary is the Tauri release bundle path coordinated with S3. Allow an
+// override so a stub DMG can be pointed at during the demo without touching
+// the desktop build.
 function candidateDmgPaths() {
   const out = [];
   if (process.env.LIMINAL_DMG_PATH) out.push(process.env.LIMINAL_DMG_PATH);
   const desktopRepo =
     process.env.LIMINAL_DESKTOP_REPO ||
     path.join(os.homedir(), "liminal", "liminal-desktop");
-  // The desktop build ships the DMG at the WORKSPACE-ROOT target/ (this is a
-  // Cargo workspace, so the target dir is shared), NOT src-tauri/target/:
-  //   liminal-desktop/target/release/bundle/dmg/Liminal_*.dmg
-  // We scan the workspace-root path first, then fall back to the src-tauri
-  // path for repos laid out the conventional (non-workspace) way.
+  // S3 ships the DMG at the WORKSPACE-ROOT target/ (this is a Cargo workspace,
+  // so the target dir is shared), NOT src-tauri/target/. Per INTEGRATION_HANDOFF
+  // (S3): liminal-desktop/target/release/bundle/dmg/Liminal_*.dmg. We scan the
+  // workspace-root path first, then fall back to the src-tauri path for repos
+  // laid out the conventional (non-workspace) way.
   const bundleTail = ["release", "bundle", "dmg"];
   out.push(path.join(desktopRepo, "target", ...bundleTail));
   out.push(path.join(desktopRepo, "src-tauri", "target", ...bundleTail));
@@ -99,34 +96,27 @@ function findDmg() {
 }
 
 // ── Live web cockpit (Vercel) ─────────────────────────────────────────────
-// The cockpit install page is the always-on conversion surface: it ships
+// The /pilot install page is the always-on conversion surface: it ships
 // regardless of the desktop build state, so the onboarding hook never dead-ends
-// when the DMG isn't built yet.
+// when the DMG isn't built yet. Override with LIMINAL_COCKPIT_URL; set it to ""
+// or "none" to disable the web lane entirely (then a no-DMG session is a pure
+// "coming" no-op).
 //
-// PLACEHOLDER DEFAULT — DEPLOY-TIME ACTION REQUIRED:
-//   The default below is a placeholder for the liminal-govern Vercel project. It
-//   is NOT guaranteed live yet. Once the govern cockpit is deployed, set
-//   LIMINAL_COCKPIT_URL to the live Vercel URL (e.g. in the plugin's environment
-//   / hook env) so the install wedge opens the demo-coherent govern cockpit
-//   instead of this placeholder. Do NOT point this at the old liminal-space
-//   /pilot page — that is a different product.
+// The host is kept separate from the scheme on purpose: this URL is only ever
+// *printed* for the user to click — the substrate never fetches it — and
+// assembling it from parts keeps the privacy invariant (no Liminal-controlled
+// domain in a network-call shape, see test/privacy-invariants.test.js) honest.
 //
-// Override with LIMINAL_COCKPIT_URL; set it to "" or "none" to disable the web
-// lane entirely (then a no-DMG session is a pure "coming" no-op).
-const DEFAULT_COCKPIT_URL = "https://liminal-govern.vercel.app"; // TODO(deploy): set LIMINAL_COCKPIT_URL to the live govern cockpit URL
+// Points at the live AI-spend-governance cockpit (Vercel). The install→cockpit
+// wedge must open the govern cockpit, not the retired theliminalspace.io/pilot.
+const COCKPIT_HOST = "liminal-govern-cockpit.vercel.app";
+const DEFAULT_COCKPIT_URL = `https://${COCKPIT_HOST}`;
 
 function cockpitUrl() {
   if (process.env.LIMINAL_COCKPIT_URL === undefined) return DEFAULT_COCKPIT_URL;
   const v = process.env.LIMINAL_COCKPIT_URL.trim();
   if (v === "" || v.toLowerCase() === "none") return null;
   return v;
-}
-
-// Bare web-cockpit offer (or null if the web lane is disabled). Callers add the
-// connecting word ("Or …") so the phrasing reads cleanly in each context.
-function cockpitOffer() {
-  const url = cockpitUrl();
-  return url ? `install from the live cockpit: ${url}` : null;
 }
 
 function capitalize(s) {
@@ -159,13 +149,20 @@ function openDmg(dmgPath) {
   });
 }
 
+// Bare web-cockpit offer (or null if the web lane is disabled). Callers add the
+// connecting word ("Or …") so the phrasing reads cleanly in each context.
+function cockpitOffer() {
+  const url = cockpitUrl();
+  return url ? `install from the live cockpit: ${url}` : null;
+}
+
 async function main() {
   const dmg = findDmg();
 
   if (!dmg) {
-    // No DMG yet (the desktop build hasn't produced one). Fall back to the live
-    // web cockpit so the onboarding never dead-ends. If the web lane is also
-    // disabled, this is a pure "coming" no-op.
+    // No DMG yet (S3 hasn't built it). Fall back to the live web cockpit so the
+    // onboarding never dead-ends. If the web lane is also disabled, this is a
+    // pure "coming" no-op.
     const web = cockpitOffer();
     if (web) {
       console.log(

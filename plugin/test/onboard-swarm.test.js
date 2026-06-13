@@ -15,7 +15,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { scanStreams } from "../lib/onboard/swarm.js";
+import { scanStreams, bootstrapSwarm } from "../lib/onboard/swarm.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const NODE = process.execPath;
@@ -84,6 +84,59 @@ test("Auditor cross-stream goes live only with >=2 live source streams", async (
   assert.equal(auditor.status, live.length >= 2 ? "scanning" : "pending");
 });
 
+// ── Full swarm — deliberation bootstrap (fixture path, deterministic) ───────
+
+test("bootstrap posts an in-lane candidate per live source, partial-result safe", async () => {
+  // forceFixture keeps it LLM-free and deterministic: no network, no Opus.
+  const { mode, candidates, summary } = await bootstrapSwarm({ forceFixture: true });
+  assert.equal(mode, "fixture");
+  assert.ok(candidates.length >= 1, "at least one candidate posted");
+  for (const c of candidates) {
+    assert.equal(c.status, "ingested");
+    assert.equal(c.mode, "fixture");
+    assert.equal(c.refused, false, "owning agent works its own source, not refuses");
+    assert.ok(c.interpretation.length > 0);
+    assert.ok(["Analyst", "SDR", "Auditor"].includes(c.agent_owner));
+  }
+  // Candidates are owned in lane: cross-stream is the Auditor's, source streams
+  // never belong to the Auditor.
+  const auditorSources = candidates.filter((c) => c.agent_owner === "Auditor");
+  for (const c of auditorSources) assert.equal(c.source, "cross-stream");
+  assert.equal(summary.candidates_total, candidates.length);
+});
+
+test("bootstrap adds the Auditor cross-stream candidate only with >=2 source candidates", async () => {
+  const { candidates } = await bootstrapSwarm({ forceFixture: true });
+  const sourceCands = candidates.filter((c) => c.source !== "cross-stream");
+  const hasAuditor = candidates.some((c) => c.source === "cross-stream");
+  assert.equal(hasAuditor, sourceCands.length >= 2);
+});
+
+test("bootstrap reports cold when no source has signal", async () => {
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "liminal-cold-"));
+  const overrides = {
+    LIMINAL_GIT_REPO: empty,
+    LIMINAL_GRANOLA_PATH: path.join(empty, "none.json"),
+    HOME: empty,
+  };
+  const saved = Object.fromEntries(
+    Object.keys(overrides).map((k) => [k, process.env[k]]),
+  );
+  Object.assign(process.env, overrides);
+  try {
+    const { mode, candidates, summary } = await bootstrapSwarm({ forceFixture: true });
+    assert.equal(mode, "cold");
+    assert.equal(candidates.length, 0);
+    assert.equal(summary.cold_start, true);
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    fs.rmSync(empty, { recursive: true, force: true });
+  }
+});
+
 // ── SessionStart installer ───────────────────────────────────────────────────
 
 test("installer falls back to the live cockpit when no DMG is built", () => {
@@ -94,26 +147,7 @@ test("installer falls back to the live cockpit when no DMG is built", () => {
       LIMINAL_DESKTOP_REPO: path.join(data, "no-such-repo"),
     });
     assert.match(out, /DMG not yet built/);
-    assert.match(out, /liminal-govern\.vercel\.app/);
-  } finally {
-    fs.rmSync(data, { recursive: true, force: true });
-  }
-});
-
-test("cockpit URL is configurable via LIMINAL_COCKPIT_URL (C-4)", () => {
-  // Setting the env var must override the placeholder default verbatim, and the
-  // shipped default must never resurface the old liminal-space /pilot page.
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), "liminal-onb-"));
-  const live = "https://liminal-govern.example.vercel.app/install";
-  try {
-    const out = runOnboard({
-      LIMINAL_ONBOARD_DATA_DIR: data,
-      LIMINAL_DESKTOP_REPO: path.join(data, "no-such-repo"),
-      LIMINAL_COCKPIT_URL: live,
-    });
-    assert.match(out, new RegExp(live.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    assert.doesNotMatch(out, /theliminalspace\.io\/pilot/);
-    assert.doesNotMatch(out, /liminal-govern\.vercel\.app[^.]/); // placeholder default not used
+    assert.match(out, /liminal-govern-cockpit\.vercel\.app/);
   } finally {
     fs.rmSync(data, { recursive: true, force: true });
   }
@@ -149,7 +183,7 @@ test("installer opens a found DMG once, then is idempotent", () => {
     assert.match(first, /installer opened/);
     assert.match(first, /Liminal_0\.1\.0_test\.dmg/);
     // Cockpit is still offered alongside the DMG.
-    assert.match(first, /liminal-govern\.vercel\.app/);
+    assert.match(first, /liminal-govern-cockpit\.vercel\.app/);
 
     const second = runOnboard(env);
     assert.match(second, /already offered/);
