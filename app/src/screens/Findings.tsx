@@ -1,32 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../components/Page";
-import { pct, shortHash, usd } from "../lib/format";
+import { shortHash, usd } from "../lib/format";
 import type { CorrectionKind } from "../lib/contract";
 import {
   type CorrectionDraft,
   type ProvenanceView,
+  listDropped,
   listProvenance,
   submitCorrection,
   verifyChain,
 } from "../lib/provenance";
 
-const CORRECTION_KINDS: readonly CorrectionKind[] = [
-  "inner",
-  "outer",
-  "cross",
-  "emergence",
-];
+const CORRECTION_KINDS: readonly CorrectionKind[] = ["inner", "outer", "cross", "emergence"];
 
 type ChainState = Awaited<ReturnType<typeof verifyChain>>;
 
 // ─── THE HERO BEAT ───
-// Each finding: cites its source rows → shows its anchor receipt → Correct button.
-// Clicking Correct appends a new linked entry to the browser-native provenance
-// chain (src/lib/chain.ts), persists it, and live-re-renders the correction trail
-// + the chain-integrity verify badge. All data flows through src/lib/provenance.ts.
+// Each finding cites its source events → shows its anchor receipt → Correct button.
+// The refuted claim (E14) sits on top, showing the disagreement the operator settled.
 export function Findings() {
   const [views, setViews] = useState<ProvenanceView[] | null>(null);
   const [chain, setChain] = useState<ChainState | null>(null);
+  const dropped = listDropped();
 
   const refresh = useCallback(async () => {
     const [v, c] = await Promise.all([listProvenance(), verifyChain()]);
@@ -40,28 +35,51 @@ export function Findings() {
 
   if (!views) return <p>Loading findings…</p>;
 
-  const total = views.reduce((s, v) => s + v.savings.monthly_savings, 0);
+  const total = views.reduce((s, v) => s + v.reportFinding.monthly_savings, 0);
 
   return (
     <>
       <PageHeader
-        title="Findings"
-        sub={`${views.length} underutilized vendors · ${usd(total)}/mo reclaimable. Each finding cites its evidence and carries an anchor receipt.`}
+        title="Findings & corrections"
+        sub={`${views.length} evidence-backed findings · ${usd(total)}/mo reclaimable. Each finding cites its usage events and carries a provenance anchor.`}
       />
 
-      {/* ── Chain-integrity verify badge (browser-native provenance chain) ── */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="receipt mono">
-          <span>
-            chain integrity:{" "}
-            <span className={`badge ${chain?.ok ? "good" : "warn"}`}>
-              {chain ? (chain.ok ? "verified" : "broken") : "…"}
-            </span>{" "}
-            {chain
-              ? `${chain.links.length} linked entr${chain.links.length === 1 ? "y" : "ies"} · SHA-256 hash-linked (mirrors provenance/ scheme)`
-              : "verifying…"}
-          </span>
+      {/* ── The refuted claim — the disagreement the operator settled ── */}
+      {dropped.map(({ finding, evidence }) => (
+        <div className="card dropped-card" key={finding.finding_id}>
+          <div className="dropped-flag">REFUTED · CLAIM DROPPED</div>
+          <div className="head">
+            <div>
+              <span className="badge bad">{finding.finding_id}</span>{" "}
+              <strong>{finding.employee}</strong> · {finding.category}
+            </div>
+            <span className="savings struck">{usd(finding.monthly_savings)}/mo</span>
+          </div>
+          <p style={{ margin: 0 }}>{finding.recommended_action}</p>
+          <div className="drop-reason">
+            <span className="k">why it was dropped</span>
+            <p>{finding.drop_reason}</p>
+          </div>
+          <div className="mono evidence-line">
+            cited {evidence.map((e) => e.source_row).join(", ")} · refuted against
+            pr-evidence.csv#PR-103 — not anchored
+          </div>
         </div>
+      ))}
+
+      {/* ── Chain-integrity verify badge ── */}
+      <div className="card chain-badge" style={{ marginBottom: 16 }}>
+        <span>
+          chain integrity{" "}
+          <span className={`badge ${chain?.ok ? "good" : "warn"}`}>
+            {chain ? (chain.ok ? "verified" : "broken") : "…"}
+          </span>
+        </span>
+        <span className="mono">
+          {chain
+            ? `${chain.links.length} linked entries · SHA-256 hash-linked, re-verified in-browser`
+            : "verifying…"}
+        </span>
       </div>
 
       <div className="grid" style={{ gap: 16 }}>
@@ -72,6 +90,12 @@ export function Findings() {
     </>
   );
 }
+
+const CATEGORY_LABEL: Record<string, string> = {
+  calendar_admin: "calendar / admin",
+  summarization: "summarization",
+  security_hardening: "security hardening",
+};
 
 function FindingCard({
   view,
@@ -95,8 +119,8 @@ function FindingCard({
       reason: reason.trim(),
     };
     try {
-      const { correction } = await submitCorrection(draft); // → appends + re-anchors
-      await onCorrected(); // live re-render: trail + chain verify badge
+      const { correction } = await submitCorrection(draft);
+      await onCorrected();
       setDone(`Correction ${shortHash(correction.id)} appended as a new linked entry & re-anchored.`);
       setCorrecting(false);
       setReason("");
@@ -105,42 +129,54 @@ function FindingCard({
     }
   };
 
-  const f = view.savings;
+  const f = view.reportFinding;
+  const isOkr = f.type === "okr_misalignment";
+
   return (
     <div className="card finding-card">
       <div className="head">
         <div>
-          <span className="badge warn">{pct(f.utilization_pct)} utilized</span>{" "}
-          <strong>{f.vendor}</strong>
+          <span className={`badge ${isOkr ? "warn" : "good"}`}>
+            {isOkr ? "OKR misalignment" : "agent-fit routing"}
+          </span>{" "}
+          <strong>{f.employee ?? "Team-wide"}</strong>
+          {f.category && (
+            <span className="muted-tag"> · {CATEGORY_LABEL[f.category] ?? f.category}</span>
+          )}
         </div>
         <span className="savings">{usd(f.monthly_savings)}/mo</span>
       </div>
 
       <p style={{ margin: 0 }}>{f.recommended_action}</p>
 
-      {/* ── Source rows (cited evidence) ── */}
+      {f.approved_alternative && (
+        <div className="route-to mono">
+          route → <strong>{f.approved_alternative}</strong> (registry-verified, ~10% of
+          Opus cost)
+        </div>
+      )}
+
+      {/* ── Cited evidence (classified usage events) ── */}
       <div>
         <div className="mono" style={{ marginBottom: 4 }}>
-          cites {f.source_row_ids.length} source row(s)
+          cites {view.evidence.length} usage event(s)
         </div>
         <table>
           <thead>
             <tr>
-              <th>Row</th>
-              <th>Vendor</th>
-              <th className="num">Purchased</th>
-              <th className="num">Active 30d</th>
-              <th className="num">Monthly cost</th>
+              <th>Event</th>
+              <th>Model</th>
+              <th>Category</th>
+              <th className="num">Est. cost</th>
             </tr>
           </thead>
           <tbody>
-            {view.sourceRows.map((r) => (
-              <tr key={r.row_id}>
-                <td className="mono">{r.row_id}</td>
-                <td>{r.vendor}</td>
-                <td className="num">{r.seats_purchased}</td>
-                <td className="num">{r.active_seats_30d}</td>
-                <td className="num">{usd(r.monthly_cost)}</td>
+            {view.evidence.map((e) => (
+              <tr key={e.event_id}>
+                <td className="mono">{e.source_row}</td>
+                <td className="mono">{e.model}</td>
+                <td>{e.category}</td>
+                <td className="num">{usd(e.est_cost_usd)}</td>
               </tr>
             ))}
           </tbody>
@@ -153,9 +189,6 @@ function FindingCard({
         <span>prev_hash: {shortHash(view.receipt?.prev_hash)}</span>
         <span>
           anchor: {view.receipt?.anchor_chain} · {view.receipt?.anchor_network}
-          {view.receipt?.anchor_txn_id
-            ? ` · txn ${shortHash(view.receipt.anchor_txn_id)}`
-            : " (not yet on-chain)"}
         </span>
         <span>
           verify: <span className="badge good">{view.verification_state}</span>{" "}
@@ -173,8 +206,7 @@ function FindingCard({
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {view.corrections.map((c) => (
               <li key={c.id}>
-                <span className="badge warn">{c.correction_kind}</span>{" "}
-                {c.reason}{" "}
+                <span className="badge warn">{c.correction_kind}</span> {c.reason}{" "}
                 <span className="mono" style={{ color: "var(--muted)" }}>
                   · {c.created_at.slice(0, 19).replace("T", " ")}
                 </span>
