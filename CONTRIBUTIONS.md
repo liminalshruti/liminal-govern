@@ -32,6 +32,17 @@
 - **`app/`** — the governance cockpit surfaces built today: OKR baseline, Tray→Slate, the deliberation
   + finding view, the ratify/provenance view, the AI Spend Brief. Plus integration of the trustless
   agents UI (see prior art).
+- **`engine/`** — the AI Spend Governance engine, written fresh today (merged from the
+  `build-day/engine` lane). Three evidence-first beats: `analyze()` deterministically recomputes seat
+  utilization from raw activity and emits `SavingsFinding[]` that each cite their source rows and
+  reconcile to a headline total; `anchorFindings()` commits each finding into the local-first
+  provenance chain (reuses the `provenance/` S1 lib) so claims are hash-linked and tamper-evident;
+  `enforceCap()` is a **bounded Opus agent** that refuses any spend decision over the ratified cap or
+  out-of-lane (governance without surveillance — it judges spend decisions, not people). Self-contained
+  TypeScript package on `@anthropic-ai/sdk`; `npm test` covers deterministic `analyze`/reconcile and
+  injected-ruling cap refusals, plus one live-Opus assertion that auto-skips without
+  `ANTHROPIC_API_KEY`. Wired into the unified root `npm test` gate (runs after `provenance/`, whose
+  built dist it imports).
 - **`data/`** — the synthetic AI-usage governance fixture.
 - The end-to-end integration tying these into the demo flow.
 
