@@ -1,0 +1,662 @@
+{
+  "_comment": "GENERATED at build time by app/scripts/generate-findings.mjs from the REAL engine (analyze + anchorFindings). Do not edit by hand — run `npm run generate` (or any `npm run build`) to refresh.",
+  "generated_at": "2026-06-13T21:04:47.628Z",
+  "fixture": "q2-spend",
+  "generated_for": "2026-Q2",
+  "rows_analyzed": 15,
+  "monthly_savings_total": 5104,
+  "reconcile": {
+    "ok": true,
+    "sum": 5104,
+    "total": 5104,
+    "delta": 0,
+    "tolerance": 1
+  },
+  "chain_verified": true,
+  "chain_length": 10,
+  "anchored_at": "2026-06-13T09:00:00.000Z",
+  "utilization": [
+    {
+      "row_id": "Q01",
+      "vendor": "Cursor",
+      "seats_purchased": 30,
+      "active_seats_30d": 19,
+      "monthly_cost": 1200,
+      "per_seat_cost": 40,
+      "utilization_pct": 63.3,
+      "healthy": false
+    },
+    {
+      "row_id": "Q02",
+      "vendor": "Linear",
+      "seats_purchased": 40,
+      "active_seats_30d": 38,
+      "monthly_cost": 320,
+      "per_seat_cost": 8,
+      "utilization_pct": 95,
+      "healthy": true
+    },
+    {
+      "row_id": "Q03",
+      "vendor": "Notion",
+      "seats_purchased": 55,
+      "active_seats_30d": 36,
+      "monthly_cost": 550,
+      "per_seat_cost": 10,
+      "utilization_pct": 65.5,
+      "healthy": false
+    },
+    {
+      "row_id": "Q04",
+      "vendor": "Figma",
+      "seats_purchased": 15,
+      "active_seats_30d": 6,
+      "monthly_cost": 675,
+      "per_seat_cost": 45,
+      "utilization_pct": 40,
+      "healthy": false
+    },
+    {
+      "row_id": "Q05",
+      "vendor": "Datadog",
+      "seats_purchased": 18,
+      "active_seats_30d": 17,
+      "monthly_cost": 1350,
+      "per_seat_cost": 75,
+      "utilization_pct": 94.4,
+      "healthy": true
+    },
+    {
+      "row_id": "Q06",
+      "vendor": "Vercel",
+      "seats_purchased": 12,
+      "active_seats_30d": 4,
+      "monthly_cost": 2400,
+      "per_seat_cost": 200,
+      "utilization_pct": 33.3,
+      "healthy": false
+    },
+    {
+      "row_id": "Q07",
+      "vendor": "Granola",
+      "seats_purchased": 35,
+      "active_seats_30d": 18,
+      "monthly_cost": 525,
+      "per_seat_cost": 15,
+      "utilization_pct": 51.4,
+      "healthy": false
+    },
+    {
+      "row_id": "Q08",
+      "vendor": "GitHub Copilot",
+      "seats_purchased": 30,
+      "active_seats_30d": 9,
+      "monthly_cost": 570,
+      "per_seat_cost": 19,
+      "utilization_pct": 30,
+      "healthy": false
+    },
+    {
+      "row_id": "Q09",
+      "vendor": "Slack",
+      "seats_purchased": 65,
+      "active_seats_30d": 62,
+      "monthly_cost": 975,
+      "per_seat_cost": 15,
+      "utilization_pct": 95.4,
+      "healthy": true
+    },
+    {
+      "row_id": "Q10",
+      "vendor": "Zoom",
+      "seats_purchased": 25,
+      "active_seats_30d": 16,
+      "monthly_cost": 500,
+      "per_seat_cost": 20,
+      "utilization_pct": 64,
+      "healthy": false
+    },
+    {
+      "row_id": "Q11",
+      "vendor": "Claude API",
+      "seats_purchased": 55,
+      "active_seats_30d": 50,
+      "monthly_cost": 1650,
+      "per_seat_cost": 30,
+      "utilization_pct": 90.9,
+      "healthy": true
+    },
+    {
+      "row_id": "Q12",
+      "vendor": "Retool",
+      "seats_purchased": 15,
+      "active_seats_30d": 4,
+      "monthly_cost": 750,
+      "per_seat_cost": 50,
+      "utilization_pct": 26.7,
+      "healthy": false
+    },
+    {
+      "row_id": "Q13",
+      "vendor": "Amplitude",
+      "seats_purchased": 8,
+      "active_seats_30d": 3,
+      "monthly_cost": 1000,
+      "per_seat_cost": 125,
+      "utilization_pct": 37.5,
+      "healthy": false
+    },
+    {
+      "row_id": "Q14",
+      "vendor": "Sentry",
+      "seats_purchased": 20,
+      "active_seats_30d": 18,
+      "monthly_cost": 520,
+      "per_seat_cost": 26,
+      "utilization_pct": 90,
+      "healthy": true
+    },
+    {
+      "row_id": "Q15",
+      "vendor": "Airtable",
+      "seats_purchased": 30,
+      "active_seats_30d": 7,
+      "monthly_cost": 600,
+      "per_seat_cost": 20,
+      "utilization_pct": 23.3,
+      "healthy": false
+    }
+  ],
+  "findings": [
+    {
+      "savings": {
+        "finding_id": "F-Q01",
+        "source_row_ids": [
+          "Q01"
+        ],
+        "vendor": "Cursor",
+        "utilization_pct": 63.3,
+        "recommended_action": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
+        "monthly_savings": 440
+      },
+      "packet": {
+        "id": "F-Q01",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q01\",\"source_row_ids\":[\"Q01\"],\"vendor\":\"Cursor\",\"utilization_pct\":63.3,\"monthly_savings\":440}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
+            "situation": "Cursor at 63.3% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:00.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q01",
+        "packet_hash": "00baf43011a1217bcf1129c6f700e1838888607d0763db64f03979dae0458fcf",
+        "prev_hash": null,
+        "anchored_at": "2026-06-13T09:00:00.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q01",
+          "vendor": "Cursor",
+          "plan": "",
+          "seats_purchased": 30,
+          "active_seats_30d": 19,
+          "monthly_cost": 1200,
+          "per_seat_cost": 40,
+          "utilization_pct": 63.3
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q03",
+        "source_row_ids": [
+          "Q03"
+        ],
+        "vendor": "Notion",
+        "utilization_pct": 65.5,
+        "recommended_action": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
+        "monthly_savings": 190
+      },
+      "packet": {
+        "id": "F-Q03",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q03\",\"source_row_ids\":[\"Q03\"],\"vendor\":\"Notion\",\"utilization_pct\":65.5,\"monthly_savings\":190}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
+            "situation": "Notion at 65.5% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:01.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q03",
+        "packet_hash": "b0461dd2cfb14d95fa870f070a8a65e4043e79014302013b494e7317df6b93d5",
+        "prev_hash": "00baf43011a1217bcf1129c6f700e1838888607d0763db64f03979dae0458fcf",
+        "anchored_at": "2026-06-13T09:00:01.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q03",
+          "vendor": "Notion",
+          "plan": "",
+          "seats_purchased": 55,
+          "active_seats_30d": 36,
+          "monthly_cost": 550,
+          "per_seat_cost": 10,
+          "utilization_pct": 65.5
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q04",
+        "source_row_ids": [
+          "Q04"
+        ],
+        "vendor": "Figma",
+        "utilization_pct": 40,
+        "recommended_action": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
+        "monthly_savings": 405
+      },
+      "packet": {
+        "id": "F-Q04",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q04\",\"source_row_ids\":[\"Q04\"],\"vendor\":\"Figma\",\"utilization_pct\":40,\"monthly_savings\":405}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
+            "situation": "Figma at 40% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:02.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q04",
+        "packet_hash": "819fd0843a915b23358a54775b2503cb8fad58fd1999af49840c7f3b557f3b57",
+        "prev_hash": "b0461dd2cfb14d95fa870f070a8a65e4043e79014302013b494e7317df6b93d5",
+        "anchored_at": "2026-06-13T09:00:02.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q04",
+          "vendor": "Figma",
+          "plan": "",
+          "seats_purchased": 15,
+          "active_seats_30d": 6,
+          "monthly_cost": 675,
+          "per_seat_cost": 45,
+          "utilization_pct": 40
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q06",
+        "source_row_ids": [
+          "Q06"
+        ],
+        "vendor": "Vercel",
+        "utilization_pct": 33.3,
+        "recommended_action": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
+        "monthly_savings": 1600
+      },
+      "packet": {
+        "id": "F-Q06",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q06\",\"source_row_ids\":[\"Q06\"],\"vendor\":\"Vercel\",\"utilization_pct\":33.3,\"monthly_savings\":1600}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
+            "situation": "Vercel at 33.3% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:03.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q06",
+        "packet_hash": "74033d4b5f9ddf34922f983fabc46c5d00ac76f688c3db1a0d354efe4c4f0a2b",
+        "prev_hash": "819fd0843a915b23358a54775b2503cb8fad58fd1999af49840c7f3b557f3b57",
+        "anchored_at": "2026-06-13T09:00:03.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q06",
+          "vendor": "Vercel",
+          "plan": "",
+          "seats_purchased": 12,
+          "active_seats_30d": 4,
+          "monthly_cost": 2400,
+          "per_seat_cost": 200,
+          "utilization_pct": 33.3
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q07",
+        "source_row_ids": [
+          "Q07"
+        ],
+        "vendor": "Granola",
+        "utilization_pct": 51.4,
+        "recommended_action": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
+        "monthly_savings": 255
+      },
+      "packet": {
+        "id": "F-Q07",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q07\",\"source_row_ids\":[\"Q07\"],\"vendor\":\"Granola\",\"utilization_pct\":51.4,\"monthly_savings\":255}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
+            "situation": "Granola at 51.4% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:04.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q07",
+        "packet_hash": "e6c410bd8702452d46479ec2f0741212a21179bc386dbf3fa16b1e2c3581c6ad",
+        "prev_hash": "74033d4b5f9ddf34922f983fabc46c5d00ac76f688c3db1a0d354efe4c4f0a2b",
+        "anchored_at": "2026-06-13T09:00:04.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q07",
+          "vendor": "Granola",
+          "plan": "",
+          "seats_purchased": 35,
+          "active_seats_30d": 18,
+          "monthly_cost": 525,
+          "per_seat_cost": 15,
+          "utilization_pct": 51.4
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q08",
+        "source_row_ids": [
+          "Q08"
+        ],
+        "vendor": "GitHub Copilot",
+        "utilization_pct": 30,
+        "recommended_action": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
+        "monthly_savings": 399
+      },
+      "packet": {
+        "id": "F-Q08",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q08\",\"source_row_ids\":[\"Q08\"],\"vendor\":\"GitHub Copilot\",\"utilization_pct\":30,\"monthly_savings\":399}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
+            "situation": "GitHub Copilot at 30% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:05.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q08",
+        "packet_hash": "7c858dccf3ad0d20361ee6b6d1294276296acf3ff2b79056096b0a2ef4e4347f",
+        "prev_hash": "e6c410bd8702452d46479ec2f0741212a21179bc386dbf3fa16b1e2c3581c6ad",
+        "anchored_at": "2026-06-13T09:00:05.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q08",
+          "vendor": "GitHub Copilot",
+          "plan": "",
+          "seats_purchased": 30,
+          "active_seats_30d": 9,
+          "monthly_cost": 570,
+          "per_seat_cost": 19,
+          "utilization_pct": 30
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q10",
+        "source_row_ids": [
+          "Q10"
+        ],
+        "vendor": "Zoom",
+        "utilization_pct": 64,
+        "recommended_action": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
+        "monthly_savings": 180
+      },
+      "packet": {
+        "id": "F-Q10",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q10\",\"source_row_ids\":[\"Q10\"],\"vendor\":\"Zoom\",\"utilization_pct\":64,\"monthly_savings\":180}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
+            "situation": "Zoom at 64% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:06.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q10",
+        "packet_hash": "7a27ee4f07fc3ec991fbb26f5fcbab8d138d9455e0da5b5a68562416426e6b78",
+        "prev_hash": "7c858dccf3ad0d20361ee6b6d1294276296acf3ff2b79056096b0a2ef4e4347f",
+        "anchored_at": "2026-06-13T09:00:06.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q10",
+          "vendor": "Zoom",
+          "plan": "",
+          "seats_purchased": 25,
+          "active_seats_30d": 16,
+          "monthly_cost": 500,
+          "per_seat_cost": 20,
+          "utilization_pct": 64
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q12",
+        "source_row_ids": [
+          "Q12"
+        ],
+        "vendor": "Retool",
+        "utilization_pct": 26.7,
+        "recommended_action": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
+        "monthly_savings": 550
+      },
+      "packet": {
+        "id": "F-Q12",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q12\",\"source_row_ids\":[\"Q12\"],\"vendor\":\"Retool\",\"utilization_pct\":26.7,\"monthly_savings\":550}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
+            "situation": "Retool at 26.7% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:07.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q12",
+        "packet_hash": "1b26f9132cf1c7928dd356f3520705d665d161e526d4386396e9945da32489eb",
+        "prev_hash": "7a27ee4f07fc3ec991fbb26f5fcbab8d138d9455e0da5b5a68562416426e6b78",
+        "anchored_at": "2026-06-13T09:00:07.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q12",
+          "vendor": "Retool",
+          "plan": "",
+          "seats_purchased": 15,
+          "active_seats_30d": 4,
+          "monthly_cost": 750,
+          "per_seat_cost": 50,
+          "utilization_pct": 26.7
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q13",
+        "source_row_ids": [
+          "Q13"
+        ],
+        "vendor": "Amplitude",
+        "utilization_pct": 37.5,
+        "recommended_action": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
+        "monthly_savings": 625
+      },
+      "packet": {
+        "id": "F-Q13",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q13\",\"source_row_ids\":[\"Q13\"],\"vendor\":\"Amplitude\",\"utilization_pct\":37.5,\"monthly_savings\":625}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
+            "situation": "Amplitude at 37.5% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:08.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q13",
+        "packet_hash": "334f6fadaeb99dc9a617440cea8a80eefc46f513275a42fa04b6e99dd912c6bb",
+        "prev_hash": "1b26f9132cf1c7928dd356f3520705d665d161e526d4386396e9945da32489eb",
+        "anchored_at": "2026-06-13T09:00:08.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q13",
+          "vendor": "Amplitude",
+          "plan": "",
+          "seats_purchased": 8,
+          "active_seats_30d": 3,
+          "monthly_cost": 1000,
+          "per_seat_cost": 125,
+          "utilization_pct": 37.5
+        }
+      ]
+    },
+    {
+      "savings": {
+        "finding_id": "F-Q15",
+        "source_row_ids": [
+          "Q15"
+        ],
+        "vendor": "Airtable",
+        "utilization_pct": 23.3,
+        "recommended_action": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
+        "monthly_savings": 460
+      },
+      "packet": {
+        "id": "F-Q15",
+        "kind": "finding",
+        "context": "{\"finding_id\":\"F-Q15\",\"source_row_ids\":[\"Q15\"],\"vendor\":\"Airtable\",\"utilization_pct\":23.3,\"monthly_savings\":460}",
+        "reads": [
+          {
+            "agent_name": "spend-auditor",
+            "archetype": "auditor",
+            "quoted": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
+            "situation": "Airtable at 23.3% 30-day seat utilization",
+            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
+            "next_move": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
+            "ordinal": 0
+          }
+        ],
+        "created_at": "2026-06-13T09:00:09.000Z"
+      },
+      "receipt": {
+        "packet_id": "F-Q15",
+        "packet_hash": "78c58ad87565f28f3ee5728dd990b8e8208c6dbc7fb5be81a2c89b2f642c4e69",
+        "prev_hash": "334f6fadaeb99dc9a617440cea8a80eefc46f513275a42fa04b6e99dd912c6bb",
+        "anchored_at": "2026-06-13T09:00:09.000Z",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      "sourceRows": [
+        {
+          "row_id": "Q15",
+          "vendor": "Airtable",
+          "plan": "",
+          "seats_purchased": 30,
+          "active_seats_30d": 7,
+          "monthly_cost": 600,
+          "per_seat_cost": 20,
+          "utilization_pct": 23.3
+        }
+      ]
+    }
+  ]
+}

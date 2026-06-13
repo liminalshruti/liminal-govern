@@ -3,10 +3,33 @@
 The governance cockpit for **AI spend governance for founder/operators**. Web app
 (Vite + React + TypeScript) so lane G can deploy it to Vercel. No Tauri.
 
-This is a **buildable, deployable skeleton, not a throwaway**: app shell + routing,
-the 6 cockpit screens (stubbed, rendering real fixture data where trivial), a hero
-landing screen, and — the durable part — the **provenance data-seam** wired to the
-canonical contract + seeded fixtures.
+This is a **real, deployable build, not a throwaway**: app shell + routing, the 6
+cockpit screens, a hero landing screen, and — the durable part — the **provenance
+data-seam** that now serves **real Node-engine output baked in at build time**.
+
+## Real engine output, baked at build time
+
+The engine (`../engine`) is Node-only (it links `better-sqlite3` via `../provenance`)
+and the cockpit is a static browser bundle, so they are wired at **build time**:
+
+- `npm run build` fires the **`prebuild`** hook (`scripts/prebuild.mjs`), which — when
+  the `../engine` + `../provenance` siblings are present — builds the provenance lib,
+  builds the engine, then runs **`scripts/generate-findings.mjs`**. That script runs the
+  REAL engine: `analyze("q2-spend")` recomputes seat utilization from `data/` into
+  `SavingsFinding[]`, and `anchorFindings()` commits each to the provenance chain,
+  minting a SHA-256 `AnchorReceipt` hash-linked to the prior entry. The findings, the
+  exact hashed packets, and the receipts are baked into
+  **`src/generated/engine-findings.json`** (committed, so an app-only deploy like Vercel
+  ships the same engine-produced artifact without needing the siblings).
+- The cockpit loads that file via the provenance seam (`src/lib/provenance.ts`) and
+  **re-verifies every engine `packet_hash` in-browser** with WebCrypto (`src/lib/chain.ts`
+  mirrors the provenance hash scheme byte-for-byte — proven: browser hashes ==
+  engine `node:crypto` hashes). The green badge is an independent re-verification, not a
+  re-assertion. Live corrections append as new linked entries on top of the engine chain.
+
+```bash
+npm run generate   # re-bake engine-findings.json from a live engine run (needs siblings built)
+```
 
 ## Run
 
@@ -14,17 +37,29 @@ canonical contract + seeded fixtures.
 cd app
 npm install
 npm run dev        # → http://localhost:5173
-npm run build      # tsc -b && vite build (clean build)
+npm run build      # prebuild (engine → bake findings) + tsc -b && vite build
 npm run typecheck  # tsc --noEmit
 npm run preview    # serve the production build
 ```
 
-Deploy (lane G): run **`./deploy.sh`** from the repo root — it verifies a clean
-production build and then ships `app/` to Vercel (`npx vercel deploy --prod app/`).
-`app/vercel.json` pins the build for Vercel: `framework: vite`, `buildCommand:
-npm run build`, `outputDirectory: dist`, and SPA `rewrites` so every path routes to
-`index.html` for client-side routing. (Equivalently: set the Vercel project root to
-`app/`.) See the repo-root `README.md` for the full deploy notes.
+## Deploy
+
+`app/vercel.json` pins the build: `framework: vite`, `installCommand: npm install`,
+`buildCommand: npm run build`, `outputDirectory: dist`, and SPA `rewrites` so every
+path routes to `index.html`. Set the Vercel project **Root Directory = `app/`** (the
+committed `engine-findings.json` means the `prebuild` hook gracefully skips the
+engine rebuild there and ships the baked artifact).
+
+**One-command production deploy (run from `app/`):**
+
+```bash
+npx vercel deploy --prod
+```
+
+> This repo's session had **no `VERCEL_TOKEN`** in the environment, so no deploy was
+> performed. With a token set, the same command deploys non-interactively:
+> `npx vercel deploy --prod --token "$VERCEL_TOKEN" --yes`. Equivalently, from the repo
+> root: **`./deploy.sh`** (clean build + `npx vercel deploy --prod app/`).
 
 ## Screens
 
@@ -33,9 +68,9 @@ Hero lives at `/`; the 6 cockpit screens live inside the shell (left nav).
 | Route          | Screen                       | Data status |
 |----------------|------------------------------|-------------|
 | `/`            | Hero / landing               | placeholder copy (lane C drops visuals) |
-| `/spend`       | Spend overview               | **real fixture** — per-vendor cost, reconciled monthly total |
+| `/spend`       | Spend overview               | **real fixture** — per-vendor cost, reconciled monthly total; identified-savings headline = engine total |
 | `/utilization` | Seat vs. activity            | **real fixture** — purchased vs. active-30d, recomputed utilization |
-| `/findings`    | Findings (**HERO BEAT**)     | **LIVE** — each finding cites its source rows, shows its SHA-256 anchor receipt, a chain-integrity verify badge, and a Correct button that appends a real linked correction and live-re-renders the trail |
+| `/findings`    | Findings (**HERO BEAT**)     | **REAL ENGINE OUTPUT** — engine-produced findings, each citing its source rows, showing its engine-minted SHA-256 anchor receipt (re-verified in-browser), a chain-integrity verify badge, and a Correct button that appends a real linked correction and live-re-renders the trail |
 | `/agents`      | Agent registry               | stub (static rows; trustless-agents UI plugs in later) |
 | `/agent-fit`   | Agent fit (**lane E**)       | **in-app data** — bounded swarm as a trustless registry, fit recommendation (agent ⋈ governance task), per-agent `AnchorReceipt`-style attestation badges |
 | `/governance`  | Ratified-cap / governance    | stub cap + **real** chain verification via the seam |
