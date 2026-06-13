@@ -1,0 +1,33 @@
+{
+  "name": "liminal",
+  "owner": {
+    "name": "Liminal",
+    "url": "https://theliminalspace.io"
+  },
+  "metadata": {
+    "description": "The Liminal front door — bounded agents that disagree, and a correction loop that becomes the record.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "liminal-govern",
+      "source": "./",
+      "description": "Try Liminal from your terminal. Bounded agents (Analyst / SDR / Auditor) read a brief and disagree; the in-lane agent works while the others refuse and name the correct agent. Your correction becomes the record. On enable it offers to install the Liminal desktop app so the vault outlives the session. Bounded agents run on Opus.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "homepage": "https://github.com/liminalshruti/liminal-govern",
+      "category": "productivity",
+      "keywords": [
+        "multi-agent",
+        "deliberation",
+        "correction-loop",
+        "bounded-agents",
+        "refusal",
+        "governance",
+        "liminal",
+        "opus"
+      ],
+      "strict": false
+    }
+  ]
+}
