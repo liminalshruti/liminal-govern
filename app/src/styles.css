@@ -117,6 +117,8 @@ textarea, select { font: inherit; border: 1px solid var(--line); border-radius: 
 .finding-card .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .finding-card .savings { font-weight: 700; color: var(--good); white-space: nowrap; }
 .receipt { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+.correction-trail { border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+.correction-trail ul { display: flex; flex-direction: column; gap: 4px; }
 .correct-box { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
 .correct-box .kinds { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
 .row-actions { display: flex; gap: 8px; }

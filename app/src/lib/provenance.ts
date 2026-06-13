@@ -1,22 +1,27 @@
 /**
  * Provenance data-seam (cockpit · Build Day 2026-06-13).
  *
- * Adapted from liminal-desktop/src/lib/provenance.ts (S3) — same seam shape,
- * but the Tauri IPC backend is replaced by a WEB/FIXTURE backend so this
- * deploys to Vercel (lane G). Components import ONLY from this module; they
- * never know where the data comes from.
+ * Components import ONLY from this module; they never know where the data comes
+ * from. The four exported functions (loadProvenance / listProvenance /
+ * submitCorrection / verifyChain) keep stable signatures.
  *
- * ┌─────────────────────────── PHASE-3 SWAP POINT ───────────────────────────┐
- * │ Today: findings are derived from the seeded CSV fixtures (./fixtures.ts), │
- * │ wrapped as contract `Packet`s, and given deterministic local-first        │
- * │ `AnchorReceipt`s by mockAnchor().                                          │
- * │                                                                            │
- * │ Phase-3: the real provenance/ lib lands on build-day/s1-provenance. To     │
- * │ wire it in, replace the FIXTURE BACKEND section below (loadFindingPackets, │
- * │ mockAnchor, submitCorrection, verifyChain) with calls into provenance/ —   │
- * │ it already returns Packet / AnchorReceipt / Correction (contract.ts). The  │
- * │ four exported functions keep their signatures; NO component changes.       │
- * └────────────────────────────────────────────────────────────────────────┘
+ * ┌──────────────────────────── LIVE BROWSER PROVENANCE ────────────────────────────┐
+ * │ Findings are derived from the seeded CSV fixtures (./fixtures.ts) and wrapped as │
+ * │ contract `Packet`s. Those packets are fed into ./chain.ts — a BROWSER-NATIVE     │
+ * │ provenance chain that mirrors `../../provenance/`'s canonical hash scheme        │
+ * │ EXACTLY (stableStringify → SHA-256 over the anchor-excluded, schema-tagged,      │
+ * │ ordinal-sorted canonical payload), but using WebCrypto instead of node:crypto    │
+ * │ so it runs in the browser. The chain is in-memory + localStorage-persisted,      │
+ * │ hash-linked, with local-first `anchorLocal` receipts.                            │
+ * │                                                                                  │
+ * │ Why a re-implementation and not `provenance/` directly: that library links       │
+ * │ against better-sqlite3 (a native Node addon) and CANNOT run in a browser. The    │
+ * │ hashes here are byte-identical to what `provenance/` would produce for the same  │
+ * │ packet — verified by a golden-vector parity check (see app/README.md, Phase-3).  │
+ * │                                                                                  │
+ * │ Corrections are appended as NEW linked entries that re-anchor (never mutations), │
+ * │ persisted across reloads, and the chain re-verifies live after each one.         │
+ * └──────────────────────────────────────────────────────────────────────────────┘
  *
  * CONTRACT ALIGNMENT (src/lib/contract.ts, mirrored from coordination/contract.ts):
  *   - ProvenanceView.finding  ↔ Packet (kind === "finding")
@@ -32,6 +37,14 @@ import type {
   SavingsFinding,
 } from "./contract";
 import {
+  appendCorrection,
+  buildChain,
+  correctionsFor,
+  listPersistedCorrections,
+  verifyChain as verifyEvents,
+  type ChainEvent,
+} from "./chain";
+import {
   deriveFindings,
   loadSeatActivity,
   loadSpend,
@@ -45,6 +58,7 @@ export interface ProvenanceView {
   savings: SavingsFinding; // the structured spend finding behind the packet
   sourceRows: UtilizationRow[]; // the cited evidence rows (resolved)
   receipt: AnchorReceipt | null;
+  corrections: Correction[]; // the correction trail targeting this finding
   verification_state: "verified" | "unverified" | "tampered";
   verification_message: string;
 }
@@ -56,35 +70,7 @@ export interface CorrectionDraft {
   reason: string;
 }
 
-// ───────────────────────── FIXTURE BACKEND (Phase-3 swap) ─────────────────────────
-
 const ANCHORED_AT = "2026-06-13T09:00:00.000Z";
-
-/** Tiny synchronous string hash → hex, stable per input. Stand-in for SHA-256. */
-function pseudoHash(input: string): string {
-  let h1 = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h1 ^= input.charCodeAt(i);
-    h1 = Math.imul(h1, 0x01000193);
-  }
-  const hex = (h1 >>> 0).toString(16).padStart(8, "0");
-  // Pad to a 64-char SHA-256-shaped hex string so the UI reads realistically.
-  return (hex.repeat(8)).slice(0, 64);
-}
-
-/** Build a deterministic local-first anchor receipt, hash-linked to prev. */
-function mockAnchor(packet: Packet, prevHash: string | null): AnchorReceipt {
-  const payload = `${packet.id}|${packet.context}|${packet.created_at}`;
-  return {
-    packet_id: packet.id,
-    packet_hash: pseudoHash(payload),
-    prev_hash: prevHash,
-    anchored_at: ANCHORED_AT,
-    anchor_chain: "local",
-    anchor_network: "local-first",
-    // anchor_txn_id omitted: local-first, not yet on-chain. Phase-3 / Algorand sets it.
-  };
-}
 
 /** Wrap a SavingsFinding as a contract `Packet` (kind: "finding"). */
 function findingToPacket(f: SavingsFinding): Packet {
@@ -107,46 +93,60 @@ function findingToPacket(f: SavingsFinding): Packet {
   };
 }
 
-/** Load all finding packets + cited source rows from the fixtures. */
-async function loadFindingPackets(): Promise<
-  { view: SavingsFinding; rows: UtilizationRow[] }[]
+/** Load all finding packets + cited source rows from the fixtures (deterministic order). */
+async function loadFindings(): Promise<
+  { savings: SavingsFinding; packet: Packet; rows: UtilizationRow[] }[]
 > {
   const [spend, activity] = await Promise.all([loadSpend(), loadSeatActivity()]);
   const reconciled = reconcileUtilization(spend, activity);
   const byRow = new Map(reconciled.map((r) => [r.row_id, r]));
   const findings = deriveFindings(reconciled);
-  return findings.map((view) => ({
-    view,
-    rows: view.source_row_ids
+  return findings.map((savings) => ({
+    savings,
+    packet: findingToPacket(savings),
+    rows: savings.source_row_ids
       .map((id) => byRow.get(id))
       .filter((r): r is UtilizationRow => Boolean(r)),
   }));
 }
 
-// In-memory correction log. Phase-3: provenance/ appends a real linked entry.
-const correctionLog: Correction[] = [];
+/** Build the live chain from fixture findings + persisted corrections. */
+async function buildLiveChain(): Promise<{
+  findings: { savings: SavingsFinding; packet: Packet; rows: UtilizationRow[] }[];
+  events: ChainEvent[];
+}> {
+  const findings = await loadFindings();
+  const events = await buildChain(findings.map((f) => f.packet));
+  return { findings, events };
+}
 
 // ───────────────────────────── SEAM (stable API) ─────────────────────────────
 
-/** List all finding provenance views, hash-linked into a chain. */
+/** List all finding provenance views, hash-linked into the live chain. */
 export async function listProvenance(): Promise<ProvenanceView[]> {
-  const findings = await loadFindingPackets();
-  let prevHash: string | null = null;
-  const views: ProvenanceView[] = [];
-  for (const { view, rows } of findings) {
-    const packet = findingToPacket(view);
-    const receipt = mockAnchor(packet, prevHash);
-    prevHash = receipt.packet_hash;
-    views.push({
+  const { findings, events } = await buildLiveChain();
+  const report = await verifyEvents(events);
+  const linkOk = new Map(report.links.map((l) => [l.packet_id, l.ok]));
+  const eventById = new Map(events.map((e) => [e.packet_id, e]));
+
+  return findings.map(({ savings, packet, rows }) => {
+    const event = eventById.get(packet.id) ?? null;
+    const ok = linkOk.get(packet.id) ?? false;
+    const corrections = correctionsFor(packet.id);
+    return {
       finding: packet,
-      savings: view,
+      savings,
       sourceRows: rows,
-      receipt,
-      verification_state: "verified",
-      verification_message: "Local-first — hash present and chain-linked.",
-    });
-  }
-  return views;
+      receipt: event?.receipt ?? null,
+      corrections,
+      verification_state: ok ? "verified" : "tampered",
+      verification_message: ok
+        ? `Local-first — SHA-256 anchored and chain-linked${
+            corrections.length ? ` · ${corrections.length} correction(s) re-anchored` : ""
+          }.`
+        : "Chain link broken — hash mismatch.",
+    };
+  });
 }
 
 /** Load one finding's provenance view by packet/finding id. */
@@ -158,51 +158,32 @@ export async function loadProvenance(
 }
 
 /**
- * Submit a correction against a finding — appends a new linked entry, never
- * mutates (contract.ts Correction discipline).
- *
- * PHASE-3 SEAM: today this pushes to an in-memory log and echoes the entry.
- * The real path is provenance/ append-correction (or S1's API), which returns
- * the same Correction. Wire it here WITHOUT touching the Correct button.
+ * Submit a correction against a finding — appends a NEW linked entry to the
+ * browser-native chain (never mutates), persists it to localStorage, and
+ * re-anchors on the next chain build. Returns the contract `Correction`.
  */
 export async function submitCorrection(
   draft: CorrectionDraft,
 ): Promise<{ ok: boolean; correction: Correction }> {
-  const correction: Correction = {
-    id: `C-${Date.now()}`,
-    source_packet_id: draft.source_packet_id,
-    correction_kind: draft.correction_kind,
-    reason: draft.reason,
-    created_at: new Date().toISOString(),
-  };
-  correctionLog.push(correction);
-  // eslint-disable-next-line no-console
-  console.info("[provenance seam] submitCorrection (fixture) — Phase-3 wires provenance/", correction);
+  const correction = appendCorrection(draft);
   return { ok: true, correction };
 }
 
-/** Corrections appended this session (drives the decision log). */
+/** Corrections appended to the chain (persisted; drives the decision log). */
 export function listCorrections(): Correction[] {
-  return [...correctionLog];
+  return listPersistedCorrections();
 }
 
 /**
- * Verify the finding chain links cleanly (each receipt.prev_hash matches the
- * previous receipt.packet_hash). Phase-3: provenance/ verifies real signatures
- * + on-chain anchors. Returns a per-link report.
+ * Verify the live chain links cleanly — each row re-hashes to its recorded
+ * `packet_hash` AND each `prev_hash` matches the previous row's `packet_hash`.
+ * Returns a per-link report (findings + correction entries).
  */
 export async function verifyChain(): Promise<{
   ok: boolean;
   links: { packet_id: string; ok: boolean }[];
 }> {
-  const views = await listProvenance();
-  let prevHash: string | null = null;
-  let ok = true;
-  const links = views.map((v) => {
-    const linkOk = v.receipt?.prev_hash === prevHash;
-    prevHash = v.receipt?.packet_hash ?? null;
-    if (!linkOk) ok = false;
-    return { packet_id: v.finding.id, ok: linkOk };
-  });
-  return { ok, links };
+  const { events } = await buildLiveChain();
+  const report = await verifyEvents(events);
+  return { ok: report.ok, links: report.links };
 }
