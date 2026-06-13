@@ -15,8 +15,8 @@ interface NavItem {
 
 // The 6 cockpit screens (hero lives outside the shell at "/").
 const NAV: NavItem[] = [
-  { to: "/spend", label: "Spend overview" },
-  { to: "/utilization", label: "Seat vs. activity" },
+  { to: "/spend", label: "AI spend overview" },
+  { to: "/utilization", label: "OKR alignment" },
   { to: "/findings", label: "Findings" },
   { to: "/agents", label: "Agent registry" },
   { to: "/agent-fit", label: "Agent fit" },

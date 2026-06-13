@@ -1,127 +1,267 @@
 #!/usr/bin/env node
 /**
- * generate-findings.mjs — BUILD-TIME engine → cockpit bridge (Build Day 2026-06-13).
+ * generate-findings.mjs — BUILD-TIME bridge: S4 AI-spend report → cockpit (Build Day 2026-06-13).
  *
- * The engine (`../engine`) is Node-only: analyze() recomputes seat utilization from the raw
- * `data/` fixtures into SavingsFinding[], and anchorFindings() commits each finding to the
- * local-first provenance chain (`../provenance`, better-sqlite3 + node:crypto) minting an
- * AnchorReceipt with a real SHA-256 packet_hash hash-linked to the previous entry.
+ * D1 COHERENCE FIX: the cockpit must tell the PITCH's story — AI-spend governance over Opus 4.8
+ * ($4,500/mo, $284 verified savings, E14 DROPPED via PR-103, CalendarOps agent-fit, security 24%
+ * vs 40%) — NOT the legacy SaaS-seat utilization audit. So the source of truth is the S4
+ * orchestration output `out/report.json` (the 8-agent deliberation + adversarial reviewer), not
+ * `engine.analyze(q2-spend)`.
  *
- * The cockpit (`app`) is a static browser bundle and cannot run better-sqlite3. So we wire the
- * two at BUILD TIME: this script runs the REAL engine, captures the findings, the exact packets
- * that were hashed, and the receipts, then bakes them into `src/generated/engine-findings.json`.
- * The cockpit loads THAT file and re-verifies every packet_hash in the browser with WebCrypto
- * (src/lib/chain.ts mirrors the provenance hash scheme byte-for-byte), then appends live
- * corrections on top of the engine's anchored chain.
+ * The cockpit is a static browser bundle and cannot run better-sqlite3. So we wire at BUILD TIME:
+ * read the S4 report's findings (surviving + the dropped E14) + the ratified decision, wrap each as
+ * a `kind:"finding"` Packet, ANCHOR the surviving findings + the ratified decision to the REAL
+ * local-first provenance chain (`../provenance`, better-sqlite3 + node:crypto) minting real SHA-256
+ * AnchorReceipts hash-linked in order, then bake everything into `src/generated/engine-findings.json`.
+ * The browser re-verifies every packet_hash with WebCrypto (src/lib/chain.ts mirrors the hash scheme
+ * byte-for-byte) and appends live corrections on top of the anchored chain.
  *
- * Determinism: anchorFindings is given a fixed `now`, so packets/hashes/receipts are
- * byte-identical every run → reproducible builds, stable diffs.
+ * Determinism: fixed `anchored_at` → byte-identical packets/hashes/receipts across builds.
  *
- * Prereq (the app `prebuild` hook does this): build ../provenance and ../engine first.
+ * Prereq (the app `prebuild` hook does this): build ../provenance first.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 import {
-  analyze,
-  anchorFindings,
-  findingToPacket,
-  reconcileFindings,
-} from "../../engine/dist/index.js";
-import { hashOf } from "../../provenance/dist/src/index.js";
+  ProvenanceLog,
+  ingestPacket,
+  reconcile,
+  hashOf,
+} from "../../provenance/dist/src/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(HERE, "../src/generated/engine-findings.json");
+const APP = resolve(HERE, "..");
+const REPO = resolve(APP, "..");
+const OUT = resolve(APP, "src/generated/engine-findings.json");
+const REPORT = resolve(REPO, "out/report.json");
+const USAGE = resolve(REPO, "data/usage-events.csv");
 
 /** Fixed anchor instant → deterministic packets, hashes, and receipts across builds. */
 const ANCHORED_AT = "2026-06-13T09:00:00.000Z";
-const FIXTURE = process.env.ENGINE_FIXTURE ?? "q2-spend";
+const stampAt = (i) => new Date(Date.parse(ANCHORED_AT) + i * 1000).toISOString();
 
 function fail(msg) {
   console.error(`\n  generate-findings: ${msg}\n`);
   process.exit(1);
 }
 
-async function main() {
-  console.log(`\n  ▸ Running real engine analyze("${FIXTURE}")…`);
-  const report = analyze(FIXTURE);
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines[0].split(",").map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const cells = line.split(",");
+    const row = {};
+    header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
+    return row;
+  });
+}
 
-  console.log(`  ▸ Anchoring ${report.findings.length} findings to the provenance chain…`);
-  const { log, receipts } = await anchorFindings(report.findings, { now: ANCHORED_AT });
+/** Wrap an S4 finding as a finding-Packet whose context carries its cited evidence. */
+function findingPacket(f, created_at) {
+  return {
+    id: f.finding_id,
+    kind: "finding",
+    context: JSON.stringify({
+      finding_id: f.finding_id,
+      type: f.type,
+      category: f.category ?? null,
+      source_row_ids: f.source_row_ids,
+      monthly_savings: f.monthly_savings,
+      approved_alternative: f.approved_alternative ?? null,
+    }),
+    reads: [
+      {
+        agent_name: "spend-auditor",
+        archetype: "auditor",
+        quoted: f.recommended_action,
+        situation:
+          f.type === "okr_misalignment"
+            ? "Opus 4.8 spend mix vs the ratified OKR allocation"
+            : `${f.category} on Opus 4.8 — a verified lower-cost agent covers this lane`,
+        hidden_risk:
+          "Frontier spend on work a cheaper verified agent could do compounds every month.",
+        next_move: f.recommended_action,
+        ordinal: 0,
+      },
+    ],
+    created_at,
+  };
+}
+
+/** Wrap the ratified decision as a finding-Packet that points back at the calendar finding. */
+function decisionPacket(d, created_at) {
+  return {
+    id: "D-RATIFY-CAL",
+    kind: "finding",
+    context: JSON.stringify({
+      decision: d.decision,
+      approved_alternative: d.approved_alternative,
+      agent_policy: d.agent_policy,
+      referenced_context: d.referenced_context,
+    }),
+    reads: [
+      {
+        agent_name: "Operator",
+        archetype: "operations",
+        quoted: d.decision,
+        situation: "Verified agent-fit finding ratified into enforced policy.",
+        hidden_risk: "None — the rule is enforced at routing time going forward.",
+        next_move: `Route calendar work to ${d.approved_alternative}; block Opus 4.8 for calendar_admin.`,
+        ordinal: 0,
+      },
+    ],
+    source_packet_id: "F-E12",
+    user_correction: d.decision,
+    correction_kind: "outer",
+    created_at,
+  };
+}
+
+async function main() {
+  console.log(`\n  ▸ Baking cockpit findings from the S4 AI-spend report (out/report.json)…`);
+  const report = JSON.parse(readFileSync(REPORT, "utf8"));
+  const eventsById = new Map(parseCsv(readFileSync(USAGE, "utf8")).map((e) => [e.event_id, e]));
+
+  const surviving = report.findings.filter((f) => !f.dropped);
+  const dropped = report.findings.filter((f) => f.dropped);
+
+  // Anchor surviving findings (in report order) + the ratified decision to the REAL chain.
+  const log = new ProvenanceLog(":memory:");
+  const anchoredPackets = [
+    ...surviving.map((f, i) => findingPacket(f, stampAt(i))),
+    decisionPacket(report.ratified_decision, stampAt(surviving.length)),
+  ];
+  const receipts = [];
+  for (const packet of anchoredPackets) {
+    const { receipt } = await ingestPacket(log, packet);
+    receipts.push({ ...receipt, anchored_at: packet.created_at });
+  }
   const verify = log.verifyChain();
   log.close();
+  if (!verify.ok) fail(`engine chain did not verify: ${verify.reason ?? "broken"} @${verify.brokenIndex}`);
 
-  const reconcile = reconcileFindings(report.findings, report.monthly_savings_total);
-
-  if (!verify.ok) {
-    fail(`engine chain did not verify: ${verify.reason ?? "broken"} @${verify.brokenIndex}`);
-  }
-  if (!reconcile.ok) {
-    fail(`reconcile failed: sum=$${reconcile.sum} vs total=$${reconcile.total} (±$${reconcile.tolerance})`);
-  }
-
-  const utilById = new Map(report.utilization.map((u) => [u.row_id, u]));
-
-  const findings = report.findings.map((savings, i) => {
-    // Reproduce the exact per-finding timestamp anchorFindings used, so the packet we emit
-    // is byte-identical to the one the engine hashed (and re-hashes to the same receipt).
-    const created_at = new Date(Date.parse(ANCHORED_AT) + i * 1000).toISOString();
-    const packet = findingToPacket(savings, created_at);
-    // anchorLocal stamps anchored_at with wall-clock; normalize to the deterministic anchor
-    // instant so the baked artifact is byte-stable across builds (no spurious git churn).
-    const receipt = { ...receipts[i], anchored_at: created_at };
-
-    // PARITY GATE: the emitted packet must reproduce the engine's anchored hash, or the
-    // cockpit could never re-verify it. Fail the build rather than ship a broken chain.
+  // Parity gate: each emitted packet must re-hash to its anchored receipt, or the cockpit
+  // could never re-verify it in-browser.
+  anchoredPackets.forEach((packet, i) => {
     const recomputed = hashOf(packet);
-    if (recomputed !== receipt.packet_hash) {
-      fail(`packet/receipt hash mismatch for ${savings.finding_id}: ${recomputed} != ${receipt.packet_hash}`);
+    if (recomputed !== receipts[i].packet_hash) {
+      fail(`packet/receipt hash mismatch for ${packet.id}: ${recomputed} != ${receipts[i].packet_hash}`);
     }
+  });
 
-    const sourceRows = savings.source_row_ids
-      .map((id) => utilById.get(id))
+  const receiptById = new Map(anchoredPackets.map((p, i) => [p.id, receipts[i]]));
+
+  const sourceEventsFor = (ids) =>
+    ids
+      .map((id) => eventsById.get(id))
       .filter(Boolean)
-      .map((u) => ({
-        row_id: u.row_id,
-        vendor: u.vendor,
-        plan: u.plan ?? "",
-        seats_purchased: u.seats_purchased,
-        active_seats_30d: u.active_seats_30d,
-        monthly_cost: u.monthly_cost,
-        per_seat_cost: u.per_seat_cost,
-        utilization_pct: u.utilization_pct,
+      .map((e) => ({
+        event_id: e.event_id,
+        date: e.date,
+        employee: e.employee,
+        task_label: e.task_label,
+        task_category: e.task_category,
+        est_cost_usd: Number(e.est_cost_usd),
       }));
 
-    return { savings, packet, receipt, sourceRows };
-  });
+  // The cockpit finding view: surviving (anchored) findings first, then the dropped E14 (refuted).
+  const buildFinding = (f, anchored) => {
+    const packet = anchored
+      ? anchoredPackets.find((p) => p.id === f.finding_id)
+      : findingPacket(f, stampAt(999));
+    const subject =
+      f.type === "okr_misalignment"
+        ? "Security hardening (OKR O2)"
+        : `${f.category} · ${f.employee ?? ""}`.trim();
+    return {
+      savings: {
+        finding_id: f.finding_id,
+        source_row_ids: f.source_row_ids,
+        vendor: subject,
+        utilization_pct: 0, // not a seat-utilization audit; kept for shape compat, unused in UI
+        recommended_action: f.recommended_action,
+        monthly_savings: f.monthly_savings,
+      },
+      type: f.type,
+      category: f.category ?? null,
+      employee: f.employee ?? null,
+      approved_alternative: f.approved_alternative ?? null,
+      approved_alternative_id: f.approved_alternative_id ?? null,
+      dropped: Boolean(f.dropped),
+      drop_reason: f.drop_reason ?? null,
+      packet,
+      receipt: anchored ? receiptById.get(f.finding_id) : null,
+      sourceEvents: sourceEventsFor(f.source_row_ids),
+    };
+  };
+
+  const findings = [
+    ...surviving.map((f) => buildFinding(f, true)),
+    ...dropped.map((f) => buildFinding(f, false)),
+  ];
+
+  // Reconcile: surviving findings must sum to the report total (E14 not counted).
+  const recon = reconcile(
+    surviving.map((f) => ({ monthly_savings: f.monthly_savings })),
+    report.total_recommended_savings,
+  );
+  if (!recon.ok) fail(`reconcile failed: sum=$${recon.sum} vs total=$${recon.total}`);
+
+  // Category spend mix (Opus 4.8 by task category) for the spend / OKR screens.
+  const catTotals = new Map();
+  for (const u of report.classified_usage) {
+    catTotals.set(u.category, (catTotals.get(u.category) ?? 0) + u.est_cost_usd);
+  }
+  const opusTotal = report.misalignment.opus_total_usd;
+  const categorySpend = [...catTotals.entries()]
+    .map(([category, usd]) => ({ category, usd, pct: Math.round((usd / opusTotal) * 1000) / 10 }))
+    .sort((a, b) => b.usd - a.usd);
 
   const out = {
     _comment:
-      "GENERATED at build time by app/scripts/generate-findings.mjs from the REAL engine (analyze + anchorFindings). Do not edit by hand — run `npm run generate` (or any `npm run build`) to refresh.",
+      "GENERATED at build time by app/scripts/generate-findings.mjs from the S4 AI-spend report (out/report.json), anchored to the REAL provenance chain. Do not edit by hand — run `npm run generate`.",
     generated_at: new Date().toISOString(),
-    fixture: report.fixture,
-    generated_for: report.generated_for,
-    rows_analyzed: report.rows_analyzed,
-    monthly_savings_total: report.monthly_savings_total,
-    reconcile,
+    fixture: "usage-events",
+    dataset: "ai-usage-governance",
+    generated_for: report.okr_baseline.budget_period + " · Opus 4.8 AI-usage governance",
+    governed_model: report.misalignment.governed_model,
+    opus_total: opusTotal,
+    rows_analyzed: report.classified_usage.length,
+    naive_savings: report.naive_savings,
+    monthly_savings_total: report.total_recommended_savings, // verified
+    dropped_total: report.naive_savings - report.total_recommended_savings,
+    reconcile: recon,
     chain_verified: verify.ok,
     chain_length: verify.length,
     anchored_at: ANCHORED_AT,
-    utilization: report.utilization,
+    okr: {
+      security_actual_pct: report.misalignment.security_actual_pct,
+      security_target_pct: report.misalignment.security_target_pct,
+      objectives: report.okr_baseline.objectives.map((o) => ({
+        id: o.id,
+        name: o.name,
+        target_pct: o.allocation,
+        categories: o.aligned_task_categories,
+      })),
+    },
+    category_spend: categorySpend,
+    ratified_decision: {
+      ...report.ratified_decision,
+      packet_id: "D-RATIFY-CAL",
+      packet: anchoredPackets.find((p) => p.id === "D-RATIFY-CAL"),
+      receipt: receiptById.get("D-RATIFY-CAL"),
+    },
     findings,
   };
 
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n", "utf8");
 
-  console.log(
-    `  ✓ Baked ${findings.length} engine findings + receipts → src/generated/engine-findings.json`,
-  );
-  console.log(
-    `    $${report.monthly_savings_total}/mo reclaimable · reconcile OK · chain verified (${verify.length} entries)\n`,
-  );
+  console.log(`  ✓ Baked ${findings.length} findings (${surviving.length} anchored + ${dropped.length} dropped) → src/generated/engine-findings.json`);
+  console.log(`    naive $${report.naive_savings} → verified $${report.total_recommended_savings}/mo · reconcile OK · chain verified (${verify.length} entries)\n`);
 }
 
 main().catch((err) => {

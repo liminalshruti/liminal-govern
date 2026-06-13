@@ -77,6 +77,18 @@ if (!engOk) {
 }
 results.push(['engine      (engine/tests/)', engOk]);
 
+// 5) cockpit coherence suite — zero-dep (node:test). Fails closed if the baked cockpit
+//    artifact drifts off the pitch's AI-spend numbers ($284 verified / E14 dropped / etc.).
+const cockpitArtifact = join(root, 'app', 'src', 'generated', 'engine-findings.json');
+let cockpitOk = true;
+if (!existsSync(cockpitArtifact)) {
+  process.stdout.write('\n[cockpit] skipped — no baked engine-findings.json (run app build first).\n');
+  cockpitOk = false;
+} else {
+  cockpitOk = sh('cockpit coherence suite', 'node', ['--test', 'app/tests/coherence.test.mjs']);
+}
+results.push(['cockpit     (app/tests/)', cockpitOk]);
+
 // summary
 process.stdout.write('\n═══ unified test summary ═══\n');
 let failed = 0;

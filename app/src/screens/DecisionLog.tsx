@@ -40,9 +40,17 @@ export function DecisionLog() {
               <tr key={v.finding.id}>
                 <td className="mono">{v.finding.created_at.slice(0, 10)}</td>
                 <td>
-                  <span className="badge">finding</span>
+                  {v.dropped ? (
+                    <span className="badge bad">refuted · dropped</span>
+                  ) : v.type === "okr_misalignment" ? (
+                    <span className="badge accent">reallocation</span>
+                  ) : (
+                    <span className="badge good">agent-fit</span>
+                  )}
                 </td>
-                <td>{v.savings.recommended_action}</td>
+                <td style={{ textDecoration: v.dropped ? "line-through" : "none" }}>
+                  {v.savings.recommended_action}
+                </td>
               </tr>
             ))}
             {corrections.map((c) => (

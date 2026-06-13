@@ -1,660 +1,471 @@
 {
-  "_comment": "GENERATED at build time by app/scripts/generate-findings.mjs from the REAL engine (analyze + anchorFindings). Do not edit by hand — run `npm run generate` (or any `npm run build`) to refresh.",
-  "generated_at": "2026-06-13T21:04:47.628Z",
-  "fixture": "q2-spend",
-  "generated_for": "2026-Q2",
-  "rows_analyzed": 15,
-  "monthly_savings_total": 5104,
+  "_comment": "GENERATED at build time by app/scripts/generate-findings.mjs from the S4 AI-spend report (out/report.json), anchored to the REAL provenance chain. Do not edit by hand — run `npm run generate`.",
+  "generated_at": "2026-06-13T21:43:03.990Z",
+  "fixture": "usage-events",
+  "dataset": "ai-usage-governance",
+  "generated_for": "2026-06 · Opus 4.8 AI-usage governance",
+  "governed_model": "claude-opus-4-8",
+  "opus_total": 4500,
+  "rows_analyzed": 21,
+  "naive_savings": 446,
+  "monthly_savings_total": 284,
+  "dropped_total": 162,
   "reconcile": {
     "ok": true,
-    "sum": 5104,
-    "total": 5104,
+    "sum": 284,
+    "total": 284,
     "delta": 0,
     "tolerance": 1
   },
   "chain_verified": true,
-  "chain_length": 10,
+  "chain_length": 6,
   "anchored_at": "2026-06-13T09:00:00.000Z",
-  "utilization": [
+  "okr": {
+    "security_actual_pct": 0.24,
+    "security_target_pct": 0.4,
+    "objectives": [
+      {
+        "id": "O1",
+        "name": "Accelerate product development",
+        "target_pct": 0.6,
+        "categories": [
+          "product_dev",
+          "architecture_review"
+        ]
+      },
+      {
+        "id": "O2",
+        "name": "Improve security hardening",
+        "target_pct": 0.4,
+        "categories": [
+          "security_hardening"
+        ]
+      }
+    ]
+  },
+  "category_spend": [
     {
-      "row_id": "Q01",
-      "vendor": "Cursor",
-      "seats_purchased": 30,
-      "active_seats_30d": 19,
-      "monthly_cost": 1200,
-      "per_seat_cost": 40,
-      "utilization_pct": 63.3,
-      "healthy": false
+      "category": "product_dev",
+      "usd": 2526,
+      "pct": 56.1
     },
     {
-      "row_id": "Q02",
-      "vendor": "Linear",
-      "seats_purchased": 40,
-      "active_seats_30d": 38,
-      "monthly_cost": 320,
-      "per_seat_cost": 8,
-      "utilization_pct": 95,
-      "healthy": true
+      "category": "security_hardening",
+      "usd": 1080,
+      "pct": 24
     },
     {
-      "row_id": "Q03",
-      "vendor": "Notion",
-      "seats_purchased": 55,
-      "active_seats_30d": 36,
-      "monthly_cost": 550,
-      "per_seat_cost": 10,
-      "utilization_pct": 65.5,
-      "healthy": false
+      "category": "unclassified",
+      "usd": 405,
+      "pct": 9
     },
     {
-      "row_id": "Q04",
-      "vendor": "Figma",
-      "seats_purchased": 15,
-      "active_seats_30d": 6,
-      "monthly_cost": 675,
-      "per_seat_cost": 45,
-      "utilization_pct": 40,
-      "healthy": false
+      "category": "calendar_admin",
+      "usd": 360,
+      "pct": 8
     },
     {
-      "row_id": "Q05",
-      "vendor": "Datadog",
-      "seats_purchased": 18,
-      "active_seats_30d": 17,
-      "monthly_cost": 1350,
-      "per_seat_cost": 75,
-      "utilization_pct": 94.4,
-      "healthy": true
-    },
-    {
-      "row_id": "Q06",
-      "vendor": "Vercel",
-      "seats_purchased": 12,
-      "active_seats_30d": 4,
-      "monthly_cost": 2400,
-      "per_seat_cost": 200,
-      "utilization_pct": 33.3,
-      "healthy": false
-    },
-    {
-      "row_id": "Q07",
-      "vendor": "Granola",
-      "seats_purchased": 35,
-      "active_seats_30d": 18,
-      "monthly_cost": 525,
-      "per_seat_cost": 15,
-      "utilization_pct": 51.4,
-      "healthy": false
-    },
-    {
-      "row_id": "Q08",
-      "vendor": "GitHub Copilot",
-      "seats_purchased": 30,
-      "active_seats_30d": 9,
-      "monthly_cost": 570,
-      "per_seat_cost": 19,
-      "utilization_pct": 30,
-      "healthy": false
-    },
-    {
-      "row_id": "Q09",
-      "vendor": "Slack",
-      "seats_purchased": 65,
-      "active_seats_30d": 62,
-      "monthly_cost": 975,
-      "per_seat_cost": 15,
-      "utilization_pct": 95.4,
-      "healthy": true
-    },
-    {
-      "row_id": "Q10",
-      "vendor": "Zoom",
-      "seats_purchased": 25,
-      "active_seats_30d": 16,
-      "monthly_cost": 500,
-      "per_seat_cost": 20,
-      "utilization_pct": 64,
-      "healthy": false
-    },
-    {
-      "row_id": "Q11",
-      "vendor": "Claude API",
-      "seats_purchased": 55,
-      "active_seats_30d": 50,
-      "monthly_cost": 1650,
-      "per_seat_cost": 30,
-      "utilization_pct": 90.9,
-      "healthy": true
-    },
-    {
-      "row_id": "Q12",
-      "vendor": "Retool",
-      "seats_purchased": 15,
-      "active_seats_30d": 4,
-      "monthly_cost": 750,
-      "per_seat_cost": 50,
-      "utilization_pct": 26.7,
-      "healthy": false
-    },
-    {
-      "row_id": "Q13",
-      "vendor": "Amplitude",
-      "seats_purchased": 8,
-      "active_seats_30d": 3,
-      "monthly_cost": 1000,
-      "per_seat_cost": 125,
-      "utilization_pct": 37.5,
-      "healthy": false
-    },
-    {
-      "row_id": "Q14",
-      "vendor": "Sentry",
-      "seats_purchased": 20,
-      "active_seats_30d": 18,
-      "monthly_cost": 520,
-      "per_seat_cost": 26,
-      "utilization_pct": 90,
-      "healthy": true
-    },
-    {
-      "row_id": "Q15",
-      "vendor": "Airtable",
-      "seats_purchased": 30,
-      "active_seats_30d": 7,
-      "monthly_cost": 600,
-      "per_seat_cost": 20,
-      "utilization_pct": 23.3,
-      "healthy": false
+      "category": "summarization",
+      "usd": 143,
+      "pct": 3.2
     }
   ],
+  "ratified_decision": {
+    "decision": "Opus 4.8 cannot be used for calendar management or routine admin work.",
+    "rationale": "Calendar/admin usage does not map to the approved OKRs, and a registry-verified lower-cost agent (CalendarOps, ~10% of Opus cost) covers it. Note: the calendar-sync work in E14 is product engineering (PR-103) and is explicitly NOT reclassified as admin.",
+    "approved_alternative": "CalendarOps Agent",
+    "approved_by": "Operator",
+    "effective_period": "2026-06",
+    "referenced_context": [
+      "usage-events.csv",
+      "okr-baseline.json",
+      "agent-registry.json",
+      "pr-evidence.csv#PR-103"
+    ],
+    "agent_policy": {
+      "opus_4_8_allowed_for": [
+        "product_dev",
+        "security_hardening",
+        "architecture_review"
+      ],
+      "opus_4_8_disallowed_for": [
+        "calendar_management",
+        "routine_admin",
+        "generic_summarization"
+      ]
+    },
+    "packet_id": "D-RATIFY-CAL",
+    "packet": {
+      "id": "D-RATIFY-CAL",
+      "kind": "finding",
+      "context": "{\"decision\":\"Opus 4.8 cannot be used for calendar management or routine admin work.\",\"approved_alternative\":\"CalendarOps Agent\",\"agent_policy\":{\"opus_4_8_allowed_for\":[\"product_dev\",\"security_hardening\",\"architecture_review\"],\"opus_4_8_disallowed_for\":[\"calendar_management\",\"routine_admin\",\"generic_summarization\"]},\"referenced_context\":[\"usage-events.csv\",\"okr-baseline.json\",\"agent-registry.json\",\"pr-evidence.csv#PR-103\"]}",
+      "reads": [
+        {
+          "agent_name": "Operator",
+          "archetype": "operations",
+          "quoted": "Opus 4.8 cannot be used for calendar management or routine admin work.",
+          "situation": "Verified agent-fit finding ratified into enforced policy.",
+          "hidden_risk": "None — the rule is enforced at routing time going forward.",
+          "next_move": "Route calendar work to CalendarOps Agent; block Opus 4.8 for calendar_admin.",
+          "ordinal": 0
+        }
+      ],
+      "source_packet_id": "F-E12",
+      "user_correction": "Opus 4.8 cannot be used for calendar management or routine admin work.",
+      "correction_kind": "outer",
+      "created_at": "2026-06-13T09:00:05.000Z"
+    },
+    "receipt": {
+      "packet_id": "D-RATIFY-CAL",
+      "packet_hash": "126ecfc82c266a9ede8d3c2774387747a580d8ec2205d7b763daf1e1a3c4c4f3",
+      "prev_hash": "655414da75b79107cd162591206cd68ff850313debc78fe49d3805137f0eb484",
+      "anchored_at": "2026-06-13T09:00:05.000Z",
+      "anchor_chain": "local",
+      "anchor_network": "local-first"
+    }
+  },
   "findings": [
     {
       "savings": {
-        "finding_id": "F-Q01",
+        "finding_id": "F-E12",
         "source_row_ids": [
-          "Q01"
+          "E12"
         ],
-        "vendor": "Cursor",
-        "utilization_pct": 63.3,
-        "recommended_action": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
-        "monthly_savings": 440
+        "vendor": "calendar_admin · Elif",
+        "utilization_pct": 0,
+        "recommended_action": "Route \"Schedule team offsite + calendar wrangling\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+        "monthly_savings": 81
       },
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Elif",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "dropped": false,
+      "drop_reason": null,
       "packet": {
-        "id": "F-Q01",
+        "id": "F-E12",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q01\",\"source_row_ids\":[\"Q01\"],\"vendor\":\"Cursor\",\"utilization_pct\":63.3,\"monthly_savings\":440}",
+        "context": "{\"finding_id\":\"F-E12\",\"type\":\"agent_fit_routing\",\"category\":\"calendar_admin\",\"source_row_ids\":[\"E12\"],\"monthly_savings\":81,\"approved_alternative\":\"CalendarOps Agent\"}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
-            "situation": "Cursor at 63.3% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Rightsize Cursor from 30 to 19 seats (active in 30d) — drop 11 idle seats",
+            "quoted": "Route \"Schedule team offsite + calendar wrangling\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+            "situation": "calendar_admin on Opus 4.8 — a verified lower-cost agent covers this lane",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Route \"Schedule team offsite + calendar wrangling\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
             "ordinal": 0
           }
         ],
         "created_at": "2026-06-13T09:00:00.000Z"
       },
       "receipt": {
-        "packet_id": "F-Q01",
-        "packet_hash": "00baf43011a1217bcf1129c6f700e1838888607d0763db64f03979dae0458fcf",
+        "packet_id": "F-E12",
+        "packet_hash": "859d512c923f3f4b859ebb5a7331f163bde5e98140014fdda452f2f0b720648e",
         "prev_hash": null,
         "anchored_at": "2026-06-13T09:00:00.000Z",
         "anchor_chain": "local",
         "anchor_network": "local-first"
       },
-      "sourceRows": [
+      "sourceEvents": [
         {
-          "row_id": "Q01",
-          "vendor": "Cursor",
-          "plan": "",
-          "seats_purchased": 30,
-          "active_seats_30d": 19,
-          "monthly_cost": 1200,
-          "per_seat_cost": 40,
-          "utilization_pct": 63.3
+          "event_id": "E12",
+          "date": "2026-06-03",
+          "employee": "Elif",
+          "task_label": "Schedule team offsite + calendar wrangling",
+          "task_category": "calendar_admin",
+          "est_cost_usd": 90
         }
       ]
     },
     {
       "savings": {
-        "finding_id": "F-Q03",
+        "finding_id": "F-E13",
         "source_row_ids": [
-          "Q03"
+          "E13"
         ],
-        "vendor": "Notion",
-        "utilization_pct": 65.5,
-        "recommended_action": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
-        "monthly_savings": 190
+        "vendor": "calendar_admin · Bianca",
+        "utilization_pct": 0,
+        "recommended_action": "Route \"Reformat meeting notes + send calendar invites\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+        "monthly_savings": 81
       },
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Bianca",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "dropped": false,
+      "drop_reason": null,
       "packet": {
-        "id": "F-Q03",
+        "id": "F-E13",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q03\",\"source_row_ids\":[\"Q03\"],\"vendor\":\"Notion\",\"utilization_pct\":65.5,\"monthly_savings\":190}",
+        "context": "{\"finding_id\":\"F-E13\",\"type\":\"agent_fit_routing\",\"category\":\"calendar_admin\",\"source_row_ids\":[\"E13\"],\"monthly_savings\":81,\"approved_alternative\":\"CalendarOps Agent\"}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
-            "situation": "Notion at 65.5% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Rightsize Notion from 55 to 36 seats (active in 30d) — drop 19 idle seats",
+            "quoted": "Route \"Reformat meeting notes + send calendar invites\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+            "situation": "calendar_admin on Opus 4.8 — a verified lower-cost agent covers this lane",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Route \"Reformat meeting notes + send calendar invites\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
             "ordinal": 0
           }
         ],
         "created_at": "2026-06-13T09:00:01.000Z"
       },
       "receipt": {
-        "packet_id": "F-Q03",
-        "packet_hash": "b0461dd2cfb14d95fa870f070a8a65e4043e79014302013b494e7317df6b93d5",
-        "prev_hash": "00baf43011a1217bcf1129c6f700e1838888607d0763db64f03979dae0458fcf",
+        "packet_id": "F-E13",
+        "packet_hash": "feff61e7f021a17a8cee4b3a970ab369cfd4c6837c0d63d0405e77e2ad8a5705",
+        "prev_hash": "859d512c923f3f4b859ebb5a7331f163bde5e98140014fdda452f2f0b720648e",
         "anchored_at": "2026-06-13T09:00:01.000Z",
         "anchor_chain": "local",
         "anchor_network": "local-first"
       },
-      "sourceRows": [
+      "sourceEvents": [
         {
-          "row_id": "Q03",
-          "vendor": "Notion",
-          "plan": "",
-          "seats_purchased": 55,
-          "active_seats_30d": 36,
-          "monthly_cost": 550,
-          "per_seat_cost": 10,
-          "utilization_pct": 65.5
+          "event_id": "E13",
+          "date": "2026-06-06",
+          "employee": "Bianca",
+          "task_label": "Reformat meeting notes + send calendar invites",
+          "task_category": "calendar_admin",
+          "est_cost_usd": 90
         }
       ]
     },
     {
       "savings": {
-        "finding_id": "F-Q04",
+        "finding_id": "F-E15",
         "source_row_ids": [
-          "Q04"
+          "E15"
         ],
-        "vendor": "Figma",
-        "utilization_pct": 40,
-        "recommended_action": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
-        "monthly_savings": 405
+        "vendor": "summarization · Arjun",
+        "utilization_pct": 0,
+        "recommended_action": "Route \"Summarize 40-page vendor PDF\" to the registry-verified DigestBot (~10% of Opus cost).",
+        "monthly_savings": 68
       },
+      "type": "agent_fit_routing",
+      "category": "summarization",
+      "employee": "Arjun",
+      "approved_alternative": "DigestBot",
+      "approved_alternative_id": "digestbot",
+      "dropped": false,
+      "drop_reason": null,
       "packet": {
-        "id": "F-Q04",
+        "id": "F-E15",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q04\",\"source_row_ids\":[\"Q04\"],\"vendor\":\"Figma\",\"utilization_pct\":40,\"monthly_savings\":405}",
+        "context": "{\"finding_id\":\"F-E15\",\"type\":\"agent_fit_routing\",\"category\":\"summarization\",\"source_row_ids\":[\"E15\"],\"monthly_savings\":68,\"approved_alternative\":\"DigestBot\"}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
-            "situation": "Figma at 40% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Rightsize Figma from 15 to 6 seats (active in 30d) — drop 9 idle seats",
+            "quoted": "Route \"Summarize 40-page vendor PDF\" to the registry-verified DigestBot (~10% of Opus cost).",
+            "situation": "summarization on Opus 4.8 — a verified lower-cost agent covers this lane",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Route \"Summarize 40-page vendor PDF\" to the registry-verified DigestBot (~10% of Opus cost).",
             "ordinal": 0
           }
         ],
         "created_at": "2026-06-13T09:00:02.000Z"
       },
       "receipt": {
-        "packet_id": "F-Q04",
-        "packet_hash": "819fd0843a915b23358a54775b2503cb8fad58fd1999af49840c7f3b557f3b57",
-        "prev_hash": "b0461dd2cfb14d95fa870f070a8a65e4043e79014302013b494e7317df6b93d5",
+        "packet_id": "F-E15",
+        "packet_hash": "4b4815c48c404fba6b744118a9aadd34a32002a5fbcdf9ec844ba68d8e24cbdf",
+        "prev_hash": "feff61e7f021a17a8cee4b3a970ab369cfd4c6837c0d63d0405e77e2ad8a5705",
         "anchored_at": "2026-06-13T09:00:02.000Z",
         "anchor_chain": "local",
         "anchor_network": "local-first"
       },
-      "sourceRows": [
+      "sourceEvents": [
         {
-          "row_id": "Q04",
-          "vendor": "Figma",
-          "plan": "",
-          "seats_purchased": 15,
-          "active_seats_30d": 6,
-          "monthly_cost": 675,
-          "per_seat_cost": 45,
-          "utilization_pct": 40
+          "event_id": "E15",
+          "date": "2026-06-05",
+          "employee": "Arjun",
+          "task_label": "Summarize 40-page vendor PDF",
+          "task_category": "summarization",
+          "est_cost_usd": 75
         }
       ]
     },
     {
       "savings": {
-        "finding_id": "F-Q06",
+        "finding_id": "F-E16",
         "source_row_ids": [
-          "Q06"
+          "E16"
         ],
-        "vendor": "Vercel",
-        "utilization_pct": 33.3,
-        "recommended_action": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
-        "monthly_savings": 1600
+        "vendor": "summarization · Diego",
+        "utilization_pct": 0,
+        "recommended_action": "Route \"Summarize Slack threads into weekly digest\" to the registry-verified DigestBot (~10% of Opus cost).",
+        "monthly_savings": 54
       },
+      "type": "agent_fit_routing",
+      "category": "summarization",
+      "employee": "Diego",
+      "approved_alternative": "DigestBot",
+      "approved_alternative_id": "digestbot",
+      "dropped": false,
+      "drop_reason": null,
       "packet": {
-        "id": "F-Q06",
+        "id": "F-E16",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q06\",\"source_row_ids\":[\"Q06\"],\"vendor\":\"Vercel\",\"utilization_pct\":33.3,\"monthly_savings\":1600}",
+        "context": "{\"finding_id\":\"F-E16\",\"type\":\"agent_fit_routing\",\"category\":\"summarization\",\"source_row_ids\":[\"E16\"],\"monthly_savings\":54,\"approved_alternative\":\"DigestBot\"}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
-            "situation": "Vercel at 33.3% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Downgrade or cancel Vercel: only 4/12 seats active in 30d — drop 8 idle seats",
+            "quoted": "Route \"Summarize Slack threads into weekly digest\" to the registry-verified DigestBot (~10% of Opus cost).",
+            "situation": "summarization on Opus 4.8 — a verified lower-cost agent covers this lane",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Route \"Summarize Slack threads into weekly digest\" to the registry-verified DigestBot (~10% of Opus cost).",
             "ordinal": 0
           }
         ],
         "created_at": "2026-06-13T09:00:03.000Z"
       },
       "receipt": {
-        "packet_id": "F-Q06",
-        "packet_hash": "74033d4b5f9ddf34922f983fabc46c5d00ac76f688c3db1a0d354efe4c4f0a2b",
-        "prev_hash": "819fd0843a915b23358a54775b2503cb8fad58fd1999af49840c7f3b557f3b57",
+        "packet_id": "F-E16",
+        "packet_hash": "d8e0d9a3f060b01fcc45a71c40504c8540f2f12ac022bfa3c92680f6900db631",
+        "prev_hash": "4b4815c48c404fba6b744118a9aadd34a32002a5fbcdf9ec844ba68d8e24cbdf",
         "anchored_at": "2026-06-13T09:00:03.000Z",
         "anchor_chain": "local",
         "anchor_network": "local-first"
       },
-      "sourceRows": [
+      "sourceEvents": [
         {
-          "row_id": "Q06",
-          "vendor": "Vercel",
-          "plan": "",
-          "seats_purchased": 12,
-          "active_seats_30d": 4,
-          "monthly_cost": 2400,
-          "per_seat_cost": 200,
-          "utilization_pct": 33.3
+          "event_id": "E16",
+          "date": "2026-06-09",
+          "employee": "Diego",
+          "task_label": "Summarize Slack threads into weekly digest",
+          "task_category": "summarization",
+          "est_cost_usd": 60
         }
       ]
     },
     {
       "savings": {
-        "finding_id": "F-Q07",
+        "finding_id": "F-OKR-SECURITY",
         "source_row_ids": [
-          "Q07"
+          "E08",
+          "E09",
+          "E10",
+          "E11"
         ],
-        "vendor": "Granola",
-        "utilization_pct": 51.4,
-        "recommended_action": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
-        "monthly_savings": 255
+        "vendor": "Security hardening (OKR O2)",
+        "utilization_pct": 0,
+        "recommended_action": "Reallocate Opus 4.8 spend toward security hardening: 24% actual vs 40% target.",
+        "monthly_savings": 0
       },
+      "type": "okr_misalignment",
+      "category": null,
+      "employee": null,
+      "approved_alternative": null,
+      "approved_alternative_id": null,
+      "dropped": false,
+      "drop_reason": null,
       "packet": {
-        "id": "F-Q07",
+        "id": "F-OKR-SECURITY",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q07\",\"source_row_ids\":[\"Q07\"],\"vendor\":\"Granola\",\"utilization_pct\":51.4,\"monthly_savings\":255}",
+        "context": "{\"finding_id\":\"F-OKR-SECURITY\",\"type\":\"okr_misalignment\",\"category\":null,\"source_row_ids\":[\"E08\",\"E09\",\"E10\",\"E11\"],\"monthly_savings\":0,\"approved_alternative\":null}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
-            "situation": "Granola at 51.4% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Rightsize Granola from 35 to 18 seats (active in 30d) — drop 17 idle seats",
+            "quoted": "Reallocate Opus 4.8 spend toward security hardening: 24% actual vs 40% target.",
+            "situation": "Opus 4.8 spend mix vs the ratified OKR allocation",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Reallocate Opus 4.8 spend toward security hardening: 24% actual vs 40% target.",
             "ordinal": 0
           }
         ],
         "created_at": "2026-06-13T09:00:04.000Z"
       },
       "receipt": {
-        "packet_id": "F-Q07",
-        "packet_hash": "e6c410bd8702452d46479ec2f0741212a21179bc386dbf3fa16b1e2c3581c6ad",
-        "prev_hash": "74033d4b5f9ddf34922f983fabc46c5d00ac76f688c3db1a0d354efe4c4f0a2b",
+        "packet_id": "F-OKR-SECURITY",
+        "packet_hash": "655414da75b79107cd162591206cd68ff850313debc78fe49d3805137f0eb484",
+        "prev_hash": "d8e0d9a3f060b01fcc45a71c40504c8540f2f12ac022bfa3c92680f6900db631",
         "anchored_at": "2026-06-13T09:00:04.000Z",
         "anchor_chain": "local",
         "anchor_network": "local-first"
       },
-      "sourceRows": [
+      "sourceEvents": [
         {
-          "row_id": "Q07",
-          "vendor": "Granola",
-          "plan": "",
-          "seats_purchased": 35,
-          "active_seats_30d": 18,
-          "monthly_cost": 525,
-          "per_seat_cost": 15,
-          "utilization_pct": 51.4
+          "event_id": "E08",
+          "date": "2026-06-02",
+          "employee": "Farid",
+          "task_label": "Threat-model auth service",
+          "task_category": "security_hardening",
+          "est_cost_usd": 300
+        },
+        {
+          "event_id": "E09",
+          "date": "2026-06-04",
+          "employee": "Chen",
+          "task_label": "Dependency CVE audit",
+          "task_category": "security_hardening",
+          "est_cost_usd": 240
+        },
+        {
+          "event_id": "E10",
+          "date": "2026-06-05",
+          "employee": "Farid",
+          "task_label": "Harden API rate limits",
+          "task_category": "security_hardening",
+          "est_cost_usd": 300
+        },
+        {
+          "event_id": "E11",
+          "date": "2026-06-08",
+          "employee": "Diego",
+          "task_label": "Secrets-rotation runbook",
+          "task_category": "security_hardening",
+          "est_cost_usd": 240
         }
       ]
     },
     {
       "savings": {
-        "finding_id": "F-Q08",
+        "finding_id": "F-E14",
         "source_row_ids": [
-          "Q08"
+          "E14"
         ],
-        "vendor": "GitHub Copilot",
-        "utilization_pct": 30,
-        "recommended_action": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
-        "monthly_savings": 399
+        "vendor": "calendar_admin · Priya",
+        "utilization_pct": 0,
+        "recommended_action": "Route \"calendar-sync feature: Google Calendar API integration + UI\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+        "monthly_savings": 162
       },
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Priya",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "dropped": true,
+      "drop_reason": "Refuted by adversarial review: PR-103 (Priya, \"calendar-sync feature (Google Calendar API + UI)\") proves E14 is product engineering on the approved track, not calendar_admin. The $162 routing claim is dropped.",
       "packet": {
-        "id": "F-Q08",
+        "id": "F-E14",
         "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q08\",\"source_row_ids\":[\"Q08\"],\"vendor\":\"GitHub Copilot\",\"utilization_pct\":30,\"monthly_savings\":399}",
+        "context": "{\"finding_id\":\"F-E14\",\"type\":\"agent_fit_routing\",\"category\":\"calendar_admin\",\"source_row_ids\":[\"E14\"],\"monthly_savings\":162,\"approved_alternative\":\"CalendarOps Agent\"}",
         "reads": [
           {
             "agent_name": "spend-auditor",
             "archetype": "auditor",
-            "quoted": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
-            "situation": "GitHub Copilot at 30% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Downgrade or cancel GitHub Copilot: only 9/30 seats active in 30d — drop 21 idle seats",
+            "quoted": "Route \"calendar-sync feature: Google Calendar API integration + UI\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+            "situation": "calendar_admin on Opus 4.8 — a verified lower-cost agent covers this lane",
+            "hidden_risk": "Frontier spend on work a cheaper verified agent could do compounds every month.",
+            "next_move": "Route \"calendar-sync feature: Google Calendar API integration + UI\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
             "ordinal": 0
           }
         ],
-        "created_at": "2026-06-13T09:00:05.000Z"
+        "created_at": "2026-06-13T09:16:39.000Z"
       },
-      "receipt": {
-        "packet_id": "F-Q08",
-        "packet_hash": "7c858dccf3ad0d20361ee6b6d1294276296acf3ff2b79056096b0a2ef4e4347f",
-        "prev_hash": "e6c410bd8702452d46479ec2f0741212a21179bc386dbf3fa16b1e2c3581c6ad",
-        "anchored_at": "2026-06-13T09:00:05.000Z",
-        "anchor_chain": "local",
-        "anchor_network": "local-first"
-      },
-      "sourceRows": [
+      "receipt": null,
+      "sourceEvents": [
         {
-          "row_id": "Q08",
-          "vendor": "GitHub Copilot",
-          "plan": "",
-          "seats_purchased": 30,
-          "active_seats_30d": 9,
-          "monthly_cost": 570,
-          "per_seat_cost": 19,
-          "utilization_pct": 30
-        }
-      ]
-    },
-    {
-      "savings": {
-        "finding_id": "F-Q10",
-        "source_row_ids": [
-          "Q10"
-        ],
-        "vendor": "Zoom",
-        "utilization_pct": 64,
-        "recommended_action": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
-        "monthly_savings": 180
-      },
-      "packet": {
-        "id": "F-Q10",
-        "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q10\",\"source_row_ids\":[\"Q10\"],\"vendor\":\"Zoom\",\"utilization_pct\":64,\"monthly_savings\":180}",
-        "reads": [
-          {
-            "agent_name": "spend-auditor",
-            "archetype": "auditor",
-            "quoted": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
-            "situation": "Zoom at 64% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Rightsize Zoom from 25 to 16 seats (active in 30d) — drop 9 idle seats",
-            "ordinal": 0
-          }
-        ],
-        "created_at": "2026-06-13T09:00:06.000Z"
-      },
-      "receipt": {
-        "packet_id": "F-Q10",
-        "packet_hash": "7a27ee4f07fc3ec991fbb26f5fcbab8d138d9455e0da5b5a68562416426e6b78",
-        "prev_hash": "7c858dccf3ad0d20361ee6b6d1294276296acf3ff2b79056096b0a2ef4e4347f",
-        "anchored_at": "2026-06-13T09:00:06.000Z",
-        "anchor_chain": "local",
-        "anchor_network": "local-first"
-      },
-      "sourceRows": [
-        {
-          "row_id": "Q10",
-          "vendor": "Zoom",
-          "plan": "",
-          "seats_purchased": 25,
-          "active_seats_30d": 16,
-          "monthly_cost": 500,
-          "per_seat_cost": 20,
-          "utilization_pct": 64
-        }
-      ]
-    },
-    {
-      "savings": {
-        "finding_id": "F-Q12",
-        "source_row_ids": [
-          "Q12"
-        ],
-        "vendor": "Retool",
-        "utilization_pct": 26.7,
-        "recommended_action": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
-        "monthly_savings": 550
-      },
-      "packet": {
-        "id": "F-Q12",
-        "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q12\",\"source_row_ids\":[\"Q12\"],\"vendor\":\"Retool\",\"utilization_pct\":26.7,\"monthly_savings\":550}",
-        "reads": [
-          {
-            "agent_name": "spend-auditor",
-            "archetype": "auditor",
-            "quoted": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
-            "situation": "Retool at 26.7% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Downgrade or cancel Retool: only 4/15 seats active in 30d — drop 11 idle seats",
-            "ordinal": 0
-          }
-        ],
-        "created_at": "2026-06-13T09:00:07.000Z"
-      },
-      "receipt": {
-        "packet_id": "F-Q12",
-        "packet_hash": "1b26f9132cf1c7928dd356f3520705d665d161e526d4386396e9945da32489eb",
-        "prev_hash": "7a27ee4f07fc3ec991fbb26f5fcbab8d138d9455e0da5b5a68562416426e6b78",
-        "anchored_at": "2026-06-13T09:00:07.000Z",
-        "anchor_chain": "local",
-        "anchor_network": "local-first"
-      },
-      "sourceRows": [
-        {
-          "row_id": "Q12",
-          "vendor": "Retool",
-          "plan": "",
-          "seats_purchased": 15,
-          "active_seats_30d": 4,
-          "monthly_cost": 750,
-          "per_seat_cost": 50,
-          "utilization_pct": 26.7
-        }
-      ]
-    },
-    {
-      "savings": {
-        "finding_id": "F-Q13",
-        "source_row_ids": [
-          "Q13"
-        ],
-        "vendor": "Amplitude",
-        "utilization_pct": 37.5,
-        "recommended_action": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
-        "monthly_savings": 625
-      },
-      "packet": {
-        "id": "F-Q13",
-        "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q13\",\"source_row_ids\":[\"Q13\"],\"vendor\":\"Amplitude\",\"utilization_pct\":37.5,\"monthly_savings\":625}",
-        "reads": [
-          {
-            "agent_name": "spend-auditor",
-            "archetype": "auditor",
-            "quoted": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
-            "situation": "Amplitude at 37.5% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Downgrade or cancel Amplitude: only 3/8 seats active in 30d — drop 5 idle seats",
-            "ordinal": 0
-          }
-        ],
-        "created_at": "2026-06-13T09:00:08.000Z"
-      },
-      "receipt": {
-        "packet_id": "F-Q13",
-        "packet_hash": "334f6fadaeb99dc9a617440cea8a80eefc46f513275a42fa04b6e99dd912c6bb",
-        "prev_hash": "1b26f9132cf1c7928dd356f3520705d665d161e526d4386396e9945da32489eb",
-        "anchored_at": "2026-06-13T09:00:08.000Z",
-        "anchor_chain": "local",
-        "anchor_network": "local-first"
-      },
-      "sourceRows": [
-        {
-          "row_id": "Q13",
-          "vendor": "Amplitude",
-          "plan": "",
-          "seats_purchased": 8,
-          "active_seats_30d": 3,
-          "monthly_cost": 1000,
-          "per_seat_cost": 125,
-          "utilization_pct": 37.5
-        }
-      ]
-    },
-    {
-      "savings": {
-        "finding_id": "F-Q15",
-        "source_row_ids": [
-          "Q15"
-        ],
-        "vendor": "Airtable",
-        "utilization_pct": 23.3,
-        "recommended_action": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
-        "monthly_savings": 460
-      },
-      "packet": {
-        "id": "F-Q15",
-        "kind": "finding",
-        "context": "{\"finding_id\":\"F-Q15\",\"source_row_ids\":[\"Q15\"],\"vendor\":\"Airtable\",\"utilization_pct\":23.3,\"monthly_savings\":460}",
-        "reads": [
-          {
-            "agent_name": "spend-auditor",
-            "archetype": "auditor",
-            "quoted": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
-            "situation": "Airtable at 23.3% 30-day seat utilization",
-            "hidden_risk": "Idle seats renew silently; the waste compounds every month until rightsized.",
-            "next_move": "Downgrade or cancel Airtable: only 7/30 seats active in 30d — drop 23 idle seats",
-            "ordinal": 0
-          }
-        ],
-        "created_at": "2026-06-13T09:00:09.000Z"
-      },
-      "receipt": {
-        "packet_id": "F-Q15",
-        "packet_hash": "78c58ad87565f28f3ee5728dd990b8e8208c6dbc7fb5be81a2c89b2f642c4e69",
-        "prev_hash": "334f6fadaeb99dc9a617440cea8a80eefc46f513275a42fa04b6e99dd912c6bb",
-        "anchored_at": "2026-06-13T09:00:09.000Z",
-        "anchor_chain": "local",
-        "anchor_network": "local-first"
-      },
-      "sourceRows": [
-        {
-          "row_id": "Q15",
-          "vendor": "Airtable",
-          "plan": "",
-          "seats_purchased": 30,
-          "active_seats_30d": 7,
-          "monthly_cost": 600,
-          "per_seat_cost": 20,
-          "utilization_pct": 23.3
+          "event_id": "E14",
+          "date": "2026-06-04",
+          "employee": "Priya",
+          "task_label": "calendar-sync feature: Google Calendar API integration + UI",
+          "task_category": "calendar_admin",
+          "est_cost_usd": 180
         }
       ]
     }
