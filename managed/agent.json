@@ -1,0 +1,54 @@
+{
+  "$schema_note": "Managed Agent definition for the Anthropic Managed Agents harness (beta). Mirrors the Agent / Environment / Session / Events model. This file is declarative config — managed/runner.mjs reads it to (a) execute the audit locally with --dry-run, and (b) print the cloud registration payload with --register. See README.md.",
+
+  "beta": "managed-agents-2026-04-01",
+
+  "agent": {
+    "name": "weekly-spend-audit",
+    "display_name": "Weekly AI-Spend Governance Auditor",
+    "model": "claude-opus-4-8",
+    "description": "Long-running, server-side governance agent. On a weekly schedule it runs the spend-audit workflow over a team's Opus 4.8 usage fixture, adversarially refutes weak savings claims, anchors the surviving findings to the provenance chain, and emits the AI Spend Brief.",
+    "instructions": "You are a bounded FinOps governance auditor. Each run: (1) classify every Opus 4.8 usage event against the team OKR baseline; (2) detect OKR misalignment (e.g. security under its allocation target); (3) propose agent-routing savings, then ADVERSARIALLY refute any claim that PR evidence shows is real product engineering — drop it, do not count it; (4) anchor the surviving findings + the ratified decision to the provenance chain; (5) emit the AI Spend Brief. Judge spend, never people. Show evidence, never assert. Reuse the engine + provenance packages — do not reimplement the audit.",
+    "environment": {
+      "type": "container",
+      "image": "node:22",
+      "working_directory": "/workspace",
+      "setup": [
+        "npm --prefix provenance ci",
+        "npm --prefix provenance run build"
+      ]
+    }
+  },
+
+  "schedule": {
+    "cadence": "weekly",
+    "cron": "0 13 * * 1",
+    "timezone": "UTC",
+    "human": "Every Monday 13:00 UTC"
+  },
+
+  "session": {
+    "entrypoint": "node managed/runner.mjs --dry-run --team acme-eng",
+    "inputs": {
+      "team": "acme-eng",
+      "fixture": "managed/fixtures/acme-eng/usage-events.csv"
+    },
+    "outputs": [
+      "managed/out/acme-eng-report.json",
+      "managed/out/acme-eng-brief.md",
+      "managed/out/acme-eng-report.provenance.db"
+    ],
+    "max_runtime_seconds": 600
+  },
+
+  "events": {
+    "on_complete": ["emit_brief", "anchor_findings"],
+    "on_misalignment": ["notify_operator"],
+    "on_chain_broken": ["fail_closed", "alert"]
+  },
+
+  "data_handling": {
+    "zdr_eligible": false,
+    "note": "Managed Agents is a stateful Beta and is NOT eligible for Zero-Data-Retention. Usage fixtures are de-identified by employee role where possible; raw per-person usage is governed under the team's standard data agreement. This audit judges spend, not individuals."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@liminal-govern/managed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Managed Agent: the scheduled, server-side AI-spend governance auditor. Runs the spend-audit workflow weekly over a team's usage fixture, anchors findings to the provenance chain, and emits the AI Spend Brief. Reuses ../engine + ../provenance.",
+  "scripts": {
+    "dry-run": "node runner.mjs --dry-run --team acme-eng",
+    "register": "node runner.mjs --register --team acme-eng"
+  }
+}

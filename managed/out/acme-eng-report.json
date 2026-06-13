@@ -1,0 +1,362 @@
+{
+  "generated_for": "usage-events.csv",
+  "okr_baseline": {
+    "budget_period": "2026-06",
+    "team": "Acme Engineering",
+    "approved_model": "claude-opus-4-8",
+    "cohort": [
+      "Arjun",
+      "Bianca",
+      "Chen",
+      "Diego",
+      "Elif",
+      "Farid",
+      "Priya"
+    ],
+    "objectives": [
+      {
+        "id": "O1",
+        "name": "Accelerate product development",
+        "allocation": 0.6,
+        "key_results": [
+          "Ship 3 customer-facing features this sprint"
+        ],
+        "tracking_streams": [
+          "github_prs",
+          "feature_specs",
+          "claude_usage"
+        ],
+        "aligned_task_categories": [
+          "product_dev",
+          "architecture_review"
+        ]
+      },
+      {
+        "id": "O2",
+        "name": "Improve security hardening",
+        "allocation": 0.4,
+        "key_results": [
+          "Close all P0/P1 findings; complete the auth threat-model"
+        ],
+        "tracking_streams": [
+          "security_tickets",
+          "claude_usage"
+        ],
+        "aligned_task_categories": [
+          "security_hardening"
+        ]
+      }
+    ]
+  },
+  "classified_usage": [
+    {
+      "event_id": "A01",
+      "model": "claude-opus-4-8",
+      "category": "product_dev",
+      "objective_id": "O1",
+      "est_cost_usd": 450,
+      "source_row": "usage-events.csv#A01"
+    },
+    {
+      "event_id": "A02",
+      "model": "claude-opus-4-8",
+      "category": "product_dev",
+      "objective_id": "O1",
+      "est_cost_usd": 400,
+      "source_row": "usage-events.csv#A02"
+    },
+    {
+      "event_id": "A03",
+      "model": "claude-opus-4-8",
+      "category": "product_dev",
+      "objective_id": "O1",
+      "est_cost_usd": 350,
+      "source_row": "usage-events.csv#A03"
+    },
+    {
+      "event_id": "A04",
+      "model": "claude-opus-4-8",
+      "category": "product_dev",
+      "objective_id": "O1",
+      "est_cost_usd": 350,
+      "source_row": "usage-events.csv#A04"
+    },
+    {
+      "event_id": "A05",
+      "model": "claude-opus-4-8",
+      "category": "product_dev",
+      "objective_id": "O1",
+      "est_cost_usd": 300,
+      "source_row": "usage-events.csv#A05"
+    },
+    {
+      "event_id": "A06",
+      "model": "claude-opus-4-8",
+      "category": "security_hardening",
+      "objective_id": "O2",
+      "est_cost_usd": 300,
+      "source_row": "usage-events.csv#A06"
+    },
+    {
+      "event_id": "A07",
+      "model": "claude-opus-4-8",
+      "category": "security_hardening",
+      "objective_id": "O2",
+      "est_cost_usd": 240,
+      "source_row": "usage-events.csv#A07"
+    },
+    {
+      "event_id": "A08",
+      "model": "claude-opus-4-8",
+      "category": "security_hardening",
+      "objective_id": "O2",
+      "est_cost_usd": 180,
+      "source_row": "usage-events.csv#A08"
+    },
+    {
+      "event_id": "A09",
+      "model": "claude-opus-4-8",
+      "category": "calendar_admin",
+      "objective_id": null,
+      "est_cost_usd": 100,
+      "source_row": "usage-events.csv#A09"
+    },
+    {
+      "event_id": "A10",
+      "model": "claude-opus-4-8",
+      "category": "calendar_admin",
+      "objective_id": null,
+      "est_cost_usd": 80,
+      "source_row": "usage-events.csv#A10"
+    },
+    {
+      "event_id": "A11",
+      "model": "claude-opus-4-8",
+      "category": "calendar_admin",
+      "objective_id": null,
+      "est_cost_usd": 200,
+      "source_row": "usage-events.csv#A11"
+    },
+    {
+      "event_id": "A12",
+      "model": "claude-opus-4-8",
+      "category": "summarization",
+      "objective_id": null,
+      "est_cost_usd": 80,
+      "source_row": "usage-events.csv#A12"
+    },
+    {
+      "event_id": "A13",
+      "model": "claude-opus-4-8",
+      "category": "summarization",
+      "objective_id": null,
+      "est_cost_usd": 60,
+      "source_row": "usage-events.csv#A13"
+    },
+    {
+      "event_id": "A14",
+      "model": "claude-opus-4-8",
+      "category": "unclassified",
+      "objective_id": null,
+      "est_cost_usd": 120,
+      "source_row": "usage-events.csv#A14"
+    },
+    {
+      "event_id": "A15",
+      "model": "claude-opus-4-8",
+      "category": "unclassified",
+      "objective_id": null,
+      "est_cost_usd": 120,
+      "source_row": "usage-events.csv#A15"
+    },
+    {
+      "event_id": "A16",
+      "model": "claude-haiku-4-5",
+      "category": "summarization",
+      "objective_id": null,
+      "est_cost_usd": 8,
+      "source_row": "usage-events.csv#A16"
+    }
+  ],
+  "misalignment": {
+    "security_actual_pct": 0.2162,
+    "security_target_pct": 0.4,
+    "delta_pct": 0.1838,
+    "governed_model": "claude-opus-4-8",
+    "opus_total_usd": 3330
+  },
+  "findings": [
+    {
+      "finding_id": "F-A09",
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Elif",
+      "recommended_action": "Route \"Schedule team offsite + calendar wrangling\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "monthly_savings": 90,
+      "source_row_ids": [
+        "A09"
+      ]
+    },
+    {
+      "finding_id": "F-A10",
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Bianca",
+      "recommended_action": "Route \"Reformat meeting notes + send calendar invites\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "monthly_savings": 72,
+      "source_row_ids": [
+        "A10"
+      ]
+    },
+    {
+      "finding_id": "F-A11",
+      "type": "agent_fit_routing",
+      "category": "calendar_admin",
+      "employee": "Priya",
+      "recommended_action": "Route \"calendar-sync feature: Google Calendar API integration + UI\" to the registry-verified CalendarOps Agent (~10% of Opus cost).",
+      "approved_alternative": "CalendarOps Agent",
+      "approved_alternative_id": "calendarops",
+      "monthly_savings": 180,
+      "source_row_ids": [
+        "A11"
+      ],
+      "dropped": true,
+      "drop_reason": "Refuted by adversarial review: PR-103 (Priya, \"calendar-sync feature (Google Calendar API + UI)\") proves A11 is product engineering on the approved track, not calendar_admin. The $180 routing claim is dropped."
+    },
+    {
+      "finding_id": "F-A12",
+      "type": "agent_fit_routing",
+      "category": "summarization",
+      "employee": "Arjun",
+      "recommended_action": "Route \"Summarize 40-page vendor PDF\" to the registry-verified DigestBot (~10% of Opus cost).",
+      "approved_alternative": "DigestBot",
+      "approved_alternative_id": "digestbot",
+      "monthly_savings": 72,
+      "source_row_ids": [
+        "A12"
+      ]
+    },
+    {
+      "finding_id": "F-A13",
+      "type": "agent_fit_routing",
+      "category": "summarization",
+      "employee": "Diego",
+      "recommended_action": "Route \"Summarize Slack threads into weekly digest\" to the registry-verified DigestBot (~10% of Opus cost).",
+      "approved_alternative": "DigestBot",
+      "approved_alternative_id": "digestbot",
+      "monthly_savings": 54,
+      "source_row_ids": [
+        "A13"
+      ]
+    },
+    {
+      "finding_id": "F-OKR-SECURITY",
+      "type": "okr_misalignment",
+      "recommended_action": "Reallocate Opus 4.8 spend toward security hardening: 22% actual vs 40% target.",
+      "monthly_savings": 0,
+      "source_row_ids": [
+        "A06",
+        "A07",
+        "A08"
+      ]
+    }
+  ],
+  "ratified_decision": {
+    "decision": "Opus 4.8 cannot be used for calendar management or routine admin work.",
+    "rationale": "Calendar/admin usage does not map to the approved OKRs, and a registry-verified lower-cost agent (CalendarOps, ~10% of Opus cost) covers it. Note: the calendar-sync work in E14 is product engineering (PR-103) and is explicitly NOT reclassified as admin.",
+    "approved_alternative": "CalendarOps Agent",
+    "approved_by": "Operator",
+    "effective_period": "2026-06",
+    "referenced_context": [
+      "usage-events.csv",
+      "okr-baseline.json",
+      "agent-registry.json",
+      "pr-evidence.csv#PR-103"
+    ],
+    "agent_policy": {
+      "opus_4_8_allowed_for": [
+        "product_dev",
+        "security_hardening",
+        "architecture_review"
+      ],
+      "opus_4_8_disallowed_for": [
+        "calendar_management",
+        "routine_admin",
+        "generic_summarization"
+      ]
+    }
+  },
+  "total_recommended_savings": 288,
+  "naive_savings": 468,
+  "dropped_claims": [
+    {
+      "finding_id": "F-A11",
+      "drop_reason": "Refuted by adversarial review: PR-103 (Priya, \"calendar-sync feature (Google Calendar API + UI)\") proves A11 is product engineering on the approved track, not calendar_admin. The $180 routing claim is dropped."
+    }
+  ],
+  "provenance": {
+    "chain_verified": true,
+    "chain_length": 6,
+    "anchored": [
+      {
+        "packet_id": "F-A09",
+        "packet_hash": "6d6a995b7e926855224df97c1a8b2ab6c9addeec9bfa6ea1823020805f32b9bc",
+        "prev_hash": null,
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      {
+        "packet_id": "F-A10",
+        "packet_hash": "2fd5a8ce9dd2c94c89992427cb4569438aecfb1f44a2146be04a314965adf488",
+        "prev_hash": "6d6a995b7e926855224df97c1a8b2ab6c9addeec9bfa6ea1823020805f32b9bc",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      {
+        "packet_id": "F-A12",
+        "packet_hash": "acf6d399c0928befed748315de703e4f41a843fb30e7eda0a52f0454a26ccc0b",
+        "prev_hash": "2fd5a8ce9dd2c94c89992427cb4569438aecfb1f44a2146be04a314965adf488",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      {
+        "packet_id": "F-A13",
+        "packet_hash": "12bfe94efd3f4a9c03dfa721e2ac459995b7021eaec6ff7e2d9698dc92c3c885",
+        "prev_hash": "acf6d399c0928befed748315de703e4f41a843fb30e7eda0a52f0454a26ccc0b",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      {
+        "packet_id": "F-OKR-SECURITY",
+        "packet_hash": "f75a16afc5a04b9e9a3c66e3bc8caeb77e681eb9d585b9d696aa30e641351707",
+        "prev_hash": "12bfe94efd3f4a9c03dfa721e2ac459995b7021eaec6ff7e2d9698dc92c3c885",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      },
+      {
+        "packet_id": "D-RATIFY-CAL",
+        "packet_hash": "5d9fad424593e1bc81f7f8f13f4cc64c45749ef5d2bd6e6cd906b939047fd8a5",
+        "prev_hash": "f75a16afc5a04b9e9a3c66e3bc8caeb77e681eb9d585b9d696aa30e641351707",
+        "anchor_chain": "local",
+        "anchor_network": "local-first"
+      }
+    ],
+    "db": "out/acme-eng-report.provenance.db"
+  },
+  "report_citations": [
+    "usage-events.csv#A09",
+    "usage-events.csv#A10",
+    "usage-events.csv#A12",
+    "usage-events.csv#A13",
+    "usage-events.csv#A06",
+    "usage-events.csv#A07",
+    "usage-events.csv#A08",
+    "pr-evidence.csv#PR-103",
+    "okr-baseline.json#O2",
+    "agent-registry.json#calendarops"
+  ]
+}
