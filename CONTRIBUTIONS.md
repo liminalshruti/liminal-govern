@@ -6,7 +6,7 @@
 ## Built during the event (2026-06-13) — the submission
 - **`provenance/`** — the local-first provenance chain (canonical packet hashing, append-only
   hash-linked SQLite log, local/on-chain anchor receipts, corrections-as-new-entries that
-  re-anchor). Self-contained TypeScript package: `npm test` → 18 green (hash determinism + golden
+  re-anchor). Self-contained TypeScript package: `npm test` → 22 green (hash determinism + golden
   vector, chain integrity with byte-flip tamper detection, INSERT-only immutability, reconcile
   ±$1, local-first no-network anchoring, and a contract drift-guard); `npm run typecheck` clean;
   CLI `ingest | verify | show | correct`. Written fresh today.

@@ -56,19 +56,20 @@ $ node .claude/workflows/spend-audit.mjs
 ## The done-gate — "done" is a Stop hook, not a human
 
 The verification loop is closed in code by a **Stop hook** (`.claude/workflows/done-gate.mjs`, wired in
-`.claude/settings.json`). Every time the model tries to end its turn, the hook runs the unified 4-suite
-gate (`npm test` → `test-all.mjs`: root · plugin · provenance · engine) and **blocks "done" until all
-four suites are green**, quoting the failing assertion back to the model when they aren't. The only way
-to stop is a green gate. It's the same gate the workflow's Verify phase invokes and the same one a judge
-runs by hand — one source of truth for "done."
+`.claude/settings.json`). Every time the model tries to end its turn, the hook runs the unified gate
+(`npm test` → `test-all.mjs`: root · plugin · provenance · engine · app) and **blocks "done" until all
+suites are green** (currently 5), quoting the failing assertion back to the model when they aren't — the
+hook reads the suite count from the runner, so it stays correct as suites are added. The only way to stop
+is a green gate. It's the same gate the workflow's Verify phase invokes and the same one a judge runs by
+hand — one source of truth for "done."
 
 ```
 $ # red → the hook refuses to let the turn end, and says exactly why:
-Done-gate: the unified 4-suite gate (`npm test`) is NOT green — not done.
+Done-gate: the unified 5-suite gate (`npm test`) is NOT green — not done.
 Failing:
   ✗ FAIL  root        (tests/)
-  1 of 4 suite(s) failed.
-Fix until `npm test` prints "All 4 suites green." (exit 0), then stop.
+  1 of 5 suite(s) failed.
+Fix until `npm test` prints "All 5 suites green." (exit 0), then stop.
 ```
 
 Because the E14-trap guard lives *inside* that gate (`tests/reconcile.test.js` — "surviving findings
