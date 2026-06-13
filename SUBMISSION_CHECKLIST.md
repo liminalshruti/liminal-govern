@@ -8,7 +8,7 @@
 | # | Requirement | Status | Evidence / where |
 |---|---|---|---|
 | 1 | **Repo is public** | ⏳ pending | `liminalshruti/liminal-govern` — flip to public before 5pm (was private per HACK_EVALUATION). |
-| 2 | **All teammates added as collaborators** | ⏳ pending | Add every build-day contributor on GitHub → Settings → Collaborators. |
+| 2 | **All teammates added as collaborators** | ✅ done (GitHub) / ⏳ submission page | GitHub collaborators: `liminalshruti` (owner) + `allsmog` (Sean / Shayaun Nejad, **write**). Still add both on the Cerebral Valley submission page at submit. |
 | 3 | **1-minute demo video recorded** | ⏳ pending | Record the hero spine (setup → finding → adversarial catch → ratify → provenance → brief); the video is also the demo-risk fallback. |
 | 4 | **README present** | ✅ done | `README.md` — problem, ICP, workflow (not a dashboard), demo run, "how done is verified". |
 | 5 | **Rubric present** | ✅ done | `rubric.md` — 5 model-gradable "done" checks, each mapped to a test. |
@@ -19,10 +19,10 @@
 | 10 | **Live URL responds** | ✅ done | **https://liminal-govern-cockpit.vercel.app** (200) — auto-deploys from `main` (Vercel root dir `app/`); serves the canonical cockpit ($4,500 Opus spend · $284 verified · E14 dropped via PR-103). |
 
 ## How to clear the remaining items — all founder-owned, none are code
-Items 4–10 are done (in the repo / live + verified). Only these three remain:
+Everything else is done (in the repo / live + verified). Only these remain:
 - **(1) Public:** GitHub → repo → Settings → Danger Zone → Change visibility → Public. **The one hard DQ gate.**
-- **(2) Teammates:** Settings → Collaborators and teams → add each contributor (+ add them on the submission page).
 - **(3) Video:** screen-record the 3-min hero spine; trim to ≤60s; keep the full take as the demo-risk fallback.
+- **(2, partial) Submission page:** GitHub collaborators are set; still add both teammates on the Cerebral Valley submission form at submit.
 
 > **Pre-submit gate (do not skip):** repo public ✔ · teammates ✔ · video ✔ · README + rubric +
 > session log committed ✔ · `npm test` green (CI badge green) ✔ · live URL loads ✔.
