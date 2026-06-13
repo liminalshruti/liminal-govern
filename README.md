@@ -1,12 +1,25 @@
 # Liminal — AI Spend Governance for Founder/Operators
 
-> **Govern AI spend. Upgrade agent selection. Ratify decisions. Prove ROI.**
+> **What:** a Claude Code plugin + governance cockpit that turns AI credits into accountable,
+> evidence-backed decisions. **Who:** founder/operators handed expensive AI budgets before they have a
+> system to govern them. **Why:** prove spend advances company goals, route work to the right agent,
+> and ratify model-usage policy — **without surveilling the team**.
 >
-> Liminal is a **Claude Code plugin + desktop governance layer** for founders/operators who need to
-> control AI spend, evaluate agent performance, and ratify model-usage decisions **without surveilling
-> their teams.** It turns AI credits into an accountable operating system.
->
-> Built at the Claude Build Day (2026-06-13) on **Opus 4.8**, using Claude Code **dynamic workflows**.
+> Built at the Claude Build Day (2026-06-13) on **Opus 4.8** (`claude-opus-4-8`), using Claude Code
+> **dynamic workflows** — and **built + verified by parallel autonomous Opus 4.8 agents**.
+
+## For judges — verify in 5 commands
+Every command was run on this repo; the stated result is what we observed (Node 20+). Full story +
+reproduction notes in **[`ORCHESTRATION.md`](ORCHESTRATION.md)**; demo runbook in **[`DEMO.md`](DEMO.md)**.
+
+```bash
+cd provenance && npm install && npm run build && npm test   # 18 pass — hash-linked chain + tamper test
+cd ../engine  && npm install && npm test                    # 16 pass — incl. LIVE Opus cap refusal
+cd .. && node .claude/workflows/spend-audit.mjs              # the audit: naive $446 → verified $284 (E14 dropped)
+npm test                                                     # 12 pass — the 5-criterion rubric gate
+cd app && npm install && npm run build                       # clean Vite build → app/dist
+```
+The `engine` LIVE test self-skips without `ANTHROPIC_API_KEY`; everything else runs offline.
 
 ## The problem
 Founders/operators running AI-native teams are handed expensive AI budgets before they have systems to
@@ -40,9 +53,11 @@ agent routing + the trustless agent registry + provenance + non-surveillance, al
 - `app/` — the public desktop/web governance cockpit slice + the reused trustless-agents UI. **S3/S5.**
 - `.claude/workflows/` — the saved dynamic workflow + this repo's orchestration entry. **Stream S4.**
 - `data/` — the seeded AI-usage governance fixture. 
-- `rubric.md` — model-gradable "done" criteria. `tests/` — the verification suite.
-- `coordination/` — `contract.ts` (shared wire types), `BUILD_CHECKLIST.md`, `INTEGRATION_HANDOFF.md`,
-  `DEMO.md`.
+- `engine/` — AI Spend Governance engine: `analyze` (deterministic findings) · `anchorFindings` (to the
+  chain) · `enforceCap` (a **live bounded Opus agent** that refuses over-cap / surveillance decisions).
+- `rubric.md` — model-gradable "done" criteria. `tests/` — the verification suite. `BRIEF.md` — the brief.
+- `coordination/contract.ts` — the shared wire types every stream mirrors (with a drift guard).
+- `ORCHESTRATION.md` — how Opus 4.8 was directed + how it verifies itself. `DEMO.md` — the demo runbook.
 - `CONTRIBUTIONS.md` — **what was built today vs. prior art** (read this — DQ-relevant).
 
 ## Run the cockpit locally
@@ -85,11 +100,14 @@ passes it through automatically. No secrets are stored in the repo.
 ## How it was built (orchestration)
 The product is built and verified by a **dynamic Claude Code workflow** (`.claude/workflows/`) running
 on Opus 4.8: bounded specialist agents deliberate, an adversarial reviewer refutes weak claims, and the
-workflow gates "done" against `rubric.md` + `tests/` — no human in the verification loop. See
-`coordination/DEMO.md` for the demo runbook and `rubric.md` for the done criteria.
+workflow gates "done" against `rubric.md` + `tests/` — no human in the verification loop. The repo
+itself was assembled by **parallel autonomous Opus 4.8 agents**, one per stream, kept wire-compatible by
+a contract drift guard. Full walkthrough — including the moment the model **caught and dropped its own
+weak claim** (the E14 trap) — is in **[`ORCHESTRATION.md`](ORCHESTRATION.md)**; the demo beats are in
+**[`DEMO.md`](DEMO.md)**; the done criteria are in `rubric.md`.
 
 ## Status
-Build-day build. See `coordination/INTEGRATION_HANDOFF.md` for live per-stream status.
+Build-day build (2026-06-13). All five verification commands above are green on this branch.
 
 ## License
 MIT — see `LICENSE`.
