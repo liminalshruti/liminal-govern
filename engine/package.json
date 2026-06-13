@@ -10,8 +10,11 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
+    "build:deps": "npm --prefix ../provenance install --no-audit --no-fund --silent && npm --prefix ../provenance run build",
     "build": "tsc -p tsconfig.build.json",
+    "pretypecheck": "npm run build:deps",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run build:deps",
     "test": "node --import tsx --test tests/*.test.ts",
     "analyze": "node --import tsx src/cli.ts analyze",
     "anchor": "node --import tsx src/cli.ts anchor",
