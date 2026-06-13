@@ -1,0 +1,27 @@
+LIVE adversarial reviewer — model: claude-opus-4-8
+latency_ms: 4369 | usage: {"input_tokens":1228,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":358,"output_tokens_details":{"thinking_tokens":0},"service_tier":"standard","inference_geo":"global"}
+stop_reason: tool_use
+
+verdict (forced record_verdict tool call):
+{
+  "verdicts": [
+    {
+      "event_id": "E12",
+      "claim_survives": true,
+      "reason": "No PR evidence on the product workstream backs this event. 'Schedule team offsite + calendar wrangling' is genuine calendar admin work with no linked engineering artifact, so the routing/savings claim survives."
+    },
+    {
+      "event_id": "E13",
+      "claim_survives": true,
+      "reason": "No PR evidence backs this event. 'Reformat meeting notes + send calendar invites' is administrative scheduling work with no linked product PR, so the routing/savings claim survives."
+    },
+    {
+      "event_id": "E14",
+      "claim_survives": false,
+      "reason": "Refuted: PR-103 links directly to E14 (linked_usage_event=E14) on the authoritative workstream=product. This is real product engineering (Google Calendar API integration + UI), not admin. Per rule, the routing/savings claim must be dropped."
+    }
+  ],
+  "dropped_event_ids": [
+    "E14"
+  ]
+}

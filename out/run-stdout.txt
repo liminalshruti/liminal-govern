@@ -1,0 +1,7 @@
+spend-audit: usage-events.csv
+  classified 21 usage events; Opus 4.8 spend $4500
+  security 24% vs 40% target → under-allocated
+  naive savings $446 → verified $284 (adversarial review dropped 1 claim[s])
+    ✗ F-E14: Refuted by adversarial review: PR-103 (Priya, "calendar-sync feature (Google Calendar API + UI)") proves E14 is product engineering on the approved track, not calendar_admin. The $162 routing claim is dropped.
+  provenance chain: VERIFIED (6 entries) → out/report.provenance.db
+  → out/report.json
