@@ -33,8 +33,26 @@ Hero lives at `/`; the 6 cockpit screens live inside the shell (left nav).
 | `/utilization` | Seat vs. activity            | **real fixture** — purchased vs. active-30d, recomputed utilization |
 | `/findings`    | Findings (**HERO BEAT**)     | **real fixture** — each finding cites its source rows, shows its anchor receipt, has a Correct button, wired through the provenance seam |
 | `/agents`      | Agent registry               | stub (static rows; trustless-agents UI plugs in later) |
+| `/agent-fit`   | Agent fit (**lane E**)       | **in-app data** — bounded swarm as a trustless registry, fit recommendation (agent ⋈ governance task), per-agent `AnchorReceipt`-style attestation badges |
 | `/governance`  | Ratified-cap / governance    | stub cap + **real** chain verification via the seam |
 | `/decisions`   | Decision log                 | **real** findings + in-session corrections from the seam |
+
+## Agent fit / trustless agents (lane E)
+
+`/agent-fit` (`src/screens/AgentFit.tsx`, data in `src/lib/agentFit.ts`) is the
+trustless-agents surface: the bounded governance swarm (Analyst / SDR / Auditor /
+Operator) rendered as a verifiable **agent registry**, a **fit recommendation**
+matching each bounded agent to a governance task (by lane + scope overlap), and a
+per-agent **trustless attestation badge** that mirrors the contract `AnchorReceipt`
+proof (local-first by default, with an Algorand-testnet on-chain example).
+
+> **Prior art.** The concept is **reused and restyled** from the public
+> `algorand-berlin-2026` trustless-agents asset (agent registry + marketplace +
+> on-chain attestation badges). It is **not** copied verbatim — it is adapted from
+> a generic agent marketplace into this product's *bounded* governance swarm. All
+> data is in-app and mirrors `src/lib/contract.ts` shapes (`AgentRead`,
+> `AnchorReceipt`); a Phase-3 swap can back it with the live registry +
+> `provenance/` attestations without touching the component.
 
 ## The provenance data-seam (the durable part)
 
