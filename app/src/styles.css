@@ -3,42 +3,52 @@
  * All original class names preserved so every screen keeps rendering. */
 
 :root {
-  --ink: #0e1116;
-  --ink-2: #2b313b;
-  --muted: #6b7280;
-  --faint: #9aa3af;
-  --line: #e7e9ee;
-  --line-2: #eef0f4;
-  --paper: #ffffff;
-  --surface: #f6f7f9;
-  --surface-2: #f0f2f6;
+  /* DARK electric-data — matches the already-dark motion-led hero; engineered for the projector.
+   * Cream #F4F2EE on near-black #0A0A0B ≈ 17.8:1 (AAA); muted/faint clear AA on the card surface;
+   * status hues brightened from brand to clear AA on dark; color never the only signal. */
+  --ink: #F4F2EE;          /* primary text · ~17.8:1 (AAA) */
+  --ink-2: #C9C5BD;        /* secondary · ~12:1 */
+  --muted: #9C988E;        /* labels · ~6.5:1 (AA) */
+  --faint: #8A8780;        /* non-essential · ~4.7:1 (AA) */
+  --line: #2A2B30;
+  --line-2: #1F2024;
+  --paper: #131418;        /* card surface */
+  --surface: #0A0A0B;      /* ground */
+  --surface-2: #15161A;
 
-  --accent: #4f46e5;       /* indigo — Liminal signal */
-  --accent-2: #6366f1;
-  --accent-soft: #eef0fe;
-  --good: #0f7d45;
-  --good-soft: #e9f7ef;
-  --warn: #b45309;
-  --warn-soft: #fdf3e7;
-  --bad: #be123c;
-  --bad-soft: #fdeaee;
+  --accent: #8E66FB;       /* diligence violet — brand signal */
+  --accent-2: #A88BFF;     /* hover */
+  --accent-soft: rgba(142,102,251,0.13);
+  --good: #3DE38A;         /* connection green · ~12:1 */
+  --good-soft: rgba(49,230,130,0.12);
+  --warn: #FDC237;         /* watch amber · ~11:1 */
+  --warn-soft: rgba(253,194,55,0.12);
+  --bad: #FF4D67;          /* alarm red · ~5.6:1 (AA; brand #ED214F is borderline) */
+  --bad-soft: rgba(237,33,79,0.14);
 
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-sm: 0 1px 2px rgba(16, 17, 22, 0.04), 0 1px 3px rgba(16, 17, 22, 0.06);
-  --shadow-md: 0 4px 14px rgba(16, 17, 22, 0.07), 0 1px 3px rgba(16, 17, 22, 0.05);
-  --shadow-lg: 0 18px 50px rgba(16, 17, 22, 0.14);
+  --shadow-sm: 0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,0.6);
 
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  font-size: 15px;
   color: var(--ink);
   background: var(--surface);
   -webkit-font-smoothing: antialiased;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; background:
+  radial-gradient(1100px 560px at 84% -10%, rgba(142,102,251,0.07), transparent 60%),
+  radial-gradient(900px 480px at 4% 108%, rgba(25,126,235,0.06), transparent 55%),
+  var(--surface); }
 a { color: inherit; text-decoration: none; }
+::selection { background: rgba(142,102,251,0.3); }
+/* accessibility · visible focus on every interactive (keyboard + projector) */
+a:focus-visible, button:focus-visible, summary:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 .mono {
   font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
@@ -81,7 +91,7 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 8px;
 }
 .nav-link:hover { background: var(--surface-2); color: var(--ink); }
-.nav-link.active { background: var(--ink); color: var(--paper); }
+.nav-link.active { background: rgba(142,102,251,0.14); color: var(--ink); box-shadow: inset 2px 0 0 var(--accent); }
 .sidebar .spacer { flex: 1; }
 .sidebar .foot { padding: 12px; font-size: 11px; color: var(--faint); line-height: 1.5; }
 .sidebar .foot a { color: var(--accent); }
@@ -123,10 +133,10 @@ tbody tr:hover { background: var(--surface); }
 .bar.mid > span { background: var(--warn); }
 
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; border: 1px solid var(--line); background: var(--paper); }
-.badge.good { color: var(--good); border-color: #bbe9cd; background: var(--good-soft); }
-.badge.warn { color: var(--warn); border-color: #f3dcb8; background: var(--warn-soft); }
-.badge.bad { color: var(--bad); border-color: #f3c2cd; background: var(--bad-soft); }
-.badge.accent { color: var(--accent); border-color: #cdd2fb; background: var(--accent-soft); }
+.badge.good { color: var(--good); border-color: rgba(49,230,130,0.4); background: var(--good-soft); }
+.badge.warn { color: var(--warn); border-color: rgba(253,194,55,0.4); background: var(--warn-soft); }
+.badge.bad { color: var(--bad); border-color: rgba(237,33,79,0.45); background: var(--bad-soft); }
+.badge.accent { color: var(--accent); border-color: rgba(142,102,251,0.4); background: var(--accent-soft); }
 .badge.dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 button {
@@ -140,8 +150,8 @@ button {
 }
 button:hover { background: var(--surface); }
 button:active { transform: translateY(1px); }
-button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-button.primary:hover { background: #232a35; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { background: var(--accent-2); }
 button.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
 button.accent:hover { background: var(--accent-2); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -151,7 +161,7 @@ textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-col
 
 .stub-banner {
   background: var(--warn-soft);
-  border: 1px solid #f3dcb8;
+  border: 1px solid rgba(253,194,55,0.4);
   color: var(--warn);
   padding: 9px 13px;
   border-radius: var(--radius-sm);
@@ -162,13 +172,13 @@ textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-col
 /* ─────────────────────── findings ─────────────────────── */
 
 .finding-card { display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-.finding-card.amended { border-color: #cdd2fb; }
+.finding-card.amended { border-color: rgba(142,102,251,0.4); }
 .finding-card .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
 .finding-card .head .title { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; line-height: 1.35; }
 .finding-card .savings { font-weight: 700; white-space: nowrap; text-align: right; }
 .finding-card .savings .num { font-size: 19px; color: var(--good); display: block; }
 .finding-card .savings .was { font-size: 12px; color: var(--faint); text-decoration: line-through; font-weight: 500; }
-.agent-fit { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--accent-soft); border: 1px solid #d7dbfb; border-radius: var(--radius-sm); font-size: 13px; }
+.agent-fit { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--accent-soft); border: 1px solid rgba(142,102,251,0.3); border-radius: var(--radius-sm); font-size: 13px; }
 .agent-fit .chip { font-weight: 650; color: var(--accent); }
 .reads { display: flex; flex-direction: column; gap: 8px; }
 .read { border-left: 2px solid var(--line); padding: 2px 0 2px 12px; font-size: 13px; }
@@ -178,7 +188,7 @@ textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-col
 .read .risk { color: var(--warn); font-size: 12.5px; }
 .read.dissent { border-left-color: var(--bad); }
 
-.correction-strip { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; background: var(--bad-soft); border: 1px solid #f3c2cd; border-radius: var(--radius-sm); font-size: 13px; }
+.correction-strip { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; background: var(--bad-soft); border: 1px solid rgba(237,33,79,0.4); border-radius: var(--radius-sm); font-size: 13px; }
 .correction-strip .mark { font-size: 15px; line-height: 1.2; }
 .correction-strip .body { line-height: 1.45; }
 .correction-strip .body strong { color: var(--bad); }
