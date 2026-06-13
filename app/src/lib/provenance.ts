@@ -2,33 +2,33 @@
  * Provenance data-seam (cockpit · Build Day 2026-06-13).
  *
  * Components import ONLY from this module; they never know where the data comes
- * from. The four exported functions (loadProvenance / listProvenance /
- * submitCorrection / verifyChain) keep stable signatures.
+ * from. The exported functions (listProvenance / loadProvenance / submitCorrection /
+ * listCorrections / verifyChain) keep stable signatures.
  *
- * ┌──────────────────────────── LIVE BROWSER PROVENANCE ────────────────────────────┐
- * │ Findings are derived from the seeded CSV fixtures (./fixtures.ts) and wrapped as │
- * │ contract `Packet`s. Those packets are fed into ./chain.ts — a BROWSER-NATIVE     │
- * │ provenance chain that mirrors `../../provenance/`'s canonical hash scheme        │
- * │ EXACTLY (stableStringify → SHA-256 over the anchor-excluded, schema-tagged,      │
- * │ ordinal-sorted canonical payload), but using WebCrypto instead of node:crypto    │
- * │ so it runs in the browser. The chain is in-memory + localStorage-persisted,      │
- * │ hash-linked, with local-first `anchorLocal` receipts.                            │
- * │                                                                                  │
- * │ Why a re-implementation and not `provenance/` directly: that library links       │
- * │ against better-sqlite3 (a native Node addon) and CANNOT run in a browser. The    │
- * │ hashes here are byte-identical to what `provenance/` would produce for the same  │
- * │ packet — verified by a golden-vector parity check (see app/README.md, Phase-3).  │
- * │                                                                                  │
- * │ Corrections are appended as NEW linked entries that re-anchor (never mutations), │
- * │ persisted across reloads, and the chain re-verifies live after each one.         │
- * └──────────────────────────────────────────────────────────────────────────────┘
+ * ┌──────────────────────── REAL ENGINE OUTPUT, BAKED AT BUILD TIME ────────────────────────┐
+ * │ Findings are NOT derived in the browser anymore. They are produced by the Node engine    │
+ * │ (`../../engine`): analyze() recomputes seat utilization from the `data/` fixtures into    │
+ * │ SavingsFinding[], and anchorFindings() commits each one to the local-first provenance     │
+ * │ chain (`../../provenance`, better-sqlite3 + node:crypto), minting a real SHA-256          │
+ * │ AnchorReceipt hash-linked to the previous entry. `app/scripts/generate-findings.mjs`      │
+ * │ runs that engine at build time and bakes the findings + the exact hashed packets + the    │
+ * │ receipts into `src/generated/engine-findings.json` (see prebuild hook).                   │
+ * │                                                                                           │
+ * │ This module loads THAT file. The browser then RE-VERIFIES every engine packet_hash with   │
+ * │ WebCrypto via ./chain.ts — which mirrors the provenance hash scheme byte-for-byte — so    │
+ * │ the green badge is an independent in-browser confirmation of the engine's anchoring, not  │
+ * │ a re-assertion. Corrections are appended as NEW linked entries on top of the engine's     │
+ * │ anchored chain (never mutations), persisted across reloads, and the chain re-verifies     │
+ * │ live after each one.                                                                      │
+ * └───────────────────────────────────────────────────────────────────────────────────────┘
  *
  * CONTRACT ALIGNMENT (src/lib/contract.ts, mirrored from coordination/contract.ts):
- *   - ProvenanceView.finding  ↔ Packet (kind === "finding")
- *   - ProvenanceView.receipt  ↔ AnchorReceipt
+ *   - ProvenanceView.finding  ↔ Packet (kind === "finding")  — the exact packet the engine hashed
+ *   - ProvenanceView.receipt  ↔ AnchorReceipt                — the engine-minted receipt
  *   - submitCorrection payload ↔ Correction
  */
 
+import engineFindings from "../generated/engine-findings.json";
 import type {
   AnchorReceipt,
   Correction,
@@ -42,21 +42,61 @@ import {
   correctionsFor,
   listPersistedCorrections,
   verifyChain as verifyEvents,
-  type ChainEvent,
 } from "./chain";
-import {
-  deriveFindings,
-  loadSeatActivity,
-  loadSpend,
-  reconcileUtilization,
-  type UtilizationRow,
-} from "./fixtures";
+
+/** One cited evidence row behind a finding (engine UtilizationRow projection). */
+export interface EvidenceRow {
+  row_id: string;
+  vendor: string;
+  plan: string;
+  seats_purchased: number;
+  active_seats_30d: number;
+  monthly_cost: number;
+  per_seat_cost: number;
+  utilization_pct: number;
+}
+
+interface GeneratedFinding {
+  savings: SavingsFinding;
+  packet: Packet; // the exact packet the engine canonical-hashed
+  receipt: AnchorReceipt; // the engine-minted, hash-linked receipt
+  sourceRows: EvidenceRow[];
+}
+
+interface GeneratedData {
+  fixture: string;
+  generated_for: string;
+  rows_analyzed: number;
+  monthly_savings_total: number;
+  reconcile: { ok: boolean; sum: number; total: number; delta: number; tolerance: number };
+  chain_verified: boolean;
+  chain_length: number;
+  anchored_at: string;
+  findings: GeneratedFinding[];
+}
+
+/** The build-time engine output. Typed through the contract shapes. */
+const ENGINE = engineFindings as unknown as GeneratedData;
+
+/** The deterministic engine packets, in anchored (chain) order. */
+function basePackets(): Packet[] {
+  return ENGINE.findings.map((f) => f.packet);
+}
+
+/** Headline figures straight from the engine report (reconciled, evidence-backed). */
+export const engineReport = {
+  fixture: ENGINE.fixture,
+  generated_for: ENGINE.generated_for,
+  rows_analyzed: ENGINE.rows_analyzed,
+  monthly_savings_total: ENGINE.monthly_savings_total,
+  reconcile: ENGINE.reconcile,
+};
 
 /** The unit the provenance surface renders: a finding, its receipt, its verify state. */
 export interface ProvenanceView {
   finding: Packet; // kind === "finding"
   savings: SavingsFinding; // the structured spend finding behind the packet
-  sourceRows: UtilizationRow[]; // the cited evidence rows (resolved)
+  sourceRows: EvidenceRow[]; // the cited evidence rows (resolved)
   receipt: AnchorReceipt | null;
   corrections: Correction[]; // the correction trail targeting this finding
   verification_state: "verified" | "unverified" | "tampered";
@@ -70,81 +110,38 @@ export interface CorrectionDraft {
   reason: string;
 }
 
-const ANCHORED_AT = "2026-06-13T09:00:00.000Z";
-
-/** Wrap a SavingsFinding as a contract `Packet` (kind: "finding"). */
-function findingToPacket(f: SavingsFinding): Packet {
-  return {
-    id: f.finding_id,
-    kind: "finding",
-    context: `${f.vendor} utilization ${f.utilization_pct}% — ${f.recommended_action}`,
-    reads: [
-      {
-        agent_name: "Auditor",
-        archetype: "diligence",
-        quoted: `${f.vendor} shows ${f.utilization_pct}% seat utilization over 30d.`,
-        situation: `Reconciled from rows ${f.source_row_ids.join(", ")}.`,
-        hidden_risk: "Seat sprawl: paying for inactive seats compounds monthly.",
-        next_move: f.recommended_action,
-        ordinal: 0,
-      },
-    ],
-    created_at: ANCHORED_AT,
-  };
-}
-
-/** Load all finding packets + cited source rows from the fixtures (deterministic order). */
-async function loadFindings(): Promise<
-  { savings: SavingsFinding; packet: Packet; rows: UtilizationRow[] }[]
-> {
-  const [spend, activity] = await Promise.all([loadSpend(), loadSeatActivity()]);
-  const reconciled = reconcileUtilization(spend, activity);
-  const byRow = new Map(reconciled.map((r) => [r.row_id, r]));
-  const findings = deriveFindings(reconciled);
-  return findings.map((savings) => ({
-    savings,
-    packet: findingToPacket(savings),
-    rows: savings.source_row_ids
-      .map((id) => byRow.get(id))
-      .filter((r): r is UtilizationRow => Boolean(r)),
-  }));
-}
-
-/** Build the live chain from fixture findings + persisted corrections. */
-async function buildLiveChain(): Promise<{
-  findings: { savings: SavingsFinding; packet: Packet; rows: UtilizationRow[] }[];
-  events: ChainEvent[];
-}> {
-  const findings = await loadFindings();
-  const events = await buildChain(findings.map((f) => f.packet));
-  return { findings, events };
-}
-
 // ───────────────────────────── SEAM (stable API) ─────────────────────────────
 
-/** List all finding provenance views, hash-linked into the live chain. */
+/**
+ * List all finding provenance views. Builds the live chain from the engine packets
+ * (+ persisted corrections) and re-verifies it in-browser. Each base finding shows
+ * its ENGINE receipt, cross-checked against the browser-recomputed hash for parity.
+ */
 export async function listProvenance(): Promise<ProvenanceView[]> {
-  const { findings, events } = await buildLiveChain();
+  const events = await buildChain(basePackets());
   const report = await verifyEvents(events);
   const linkOk = new Map(report.links.map((l) => [l.packet_id, l.ok]));
-  const eventById = new Map(events.map((e) => [e.packet_id, e]));
+  const browserHashById = new Map(events.map((e) => [e.packet_id, e.packet_hash]));
 
-  return findings.map(({ savings, packet, rows }) => {
-    const event = eventById.get(packet.id) ?? null;
-    const ok = linkOk.get(packet.id) ?? false;
+  return ENGINE.findings.map(({ savings, packet, receipt, sourceRows }) => {
     const corrections = correctionsFor(packet.id);
+    // The browser independently re-derived this packet's hash (WebCrypto); it must equal the
+    // hash the Node engine anchored (byte-parity of the canonical scheme), and the row must link.
+    const hashMatches = browserHashById.get(packet.id) === receipt.packet_hash;
+    const linked = linkOk.get(packet.id) ?? false;
+    const ok = hashMatches && linked;
     return {
       finding: packet,
       savings,
-      sourceRows: rows,
-      receipt: event?.receipt ?? null,
+      sourceRows,
+      receipt,
       corrections,
       verification_state: ok ? "verified" : "tampered",
       verification_message: ok
-        ? `Local-first — SHA-256 anchored and chain-linked${
+        ? `Engine-anchored SHA-256, re-verified in-browser${
             corrections.length ? ` · ${corrections.length} correction(s) re-anchored` : ""
           }.`
-        : "Chain link broken — hash mismatch.",
+        : "Chain link/hash mismatch — engine receipt did not re-verify in-browser.",
     };
   });
 }
@@ -159,8 +156,8 @@ export async function loadProvenance(
 
 /**
  * Submit a correction against a finding — appends a NEW linked entry to the
- * browser-native chain (never mutates), persists it to localStorage, and
- * re-anchors on the next chain build. Returns the contract `Correction`.
+ * browser-native chain on top of the engine's anchored findings (never mutates),
+ * persists it to localStorage, and re-anchors on the next chain build.
  */
 export async function submitCorrection(
   draft: CorrectionDraft,
@@ -177,13 +174,13 @@ export function listCorrections(): Correction[] {
 /**
  * Verify the live chain links cleanly — each row re-hashes to its recorded
  * `packet_hash` AND each `prev_hash` matches the previous row's `packet_hash`.
- * Returns a per-link report (findings + correction entries).
+ * Returns a per-link report (engine findings + correction entries).
  */
 export async function verifyChain(): Promise<{
   ok: boolean;
   links: { packet_id: string; ok: boolean }[];
 }> {
-  const { events } = await buildLiveChain();
+  const events = await buildChain(basePackets());
   const report = await verifyEvents(events);
   return { ok: report.ok, links: report.links };
 }

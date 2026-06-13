@@ -3,9 +3,9 @@ import { PageHeader, StubBanner } from "../components/Page";
 import type { Correction } from "../lib/contract";
 import { listCorrections, listProvenance, type ProvenanceView } from "../lib/provenance";
 
-// Decision log: the append-only trail of findings + corrections. Findings come
-// from the seam; corrections come from the in-session correction log (Phase-3:
-// provenance/ persists both as linked chain entries).
+// Decision log: the append-only trail of findings + corrections. Findings are
+// produced by the Node engine (analyze + anchorFindings) and baked in at build
+// time; corrections are appended live as new linked chain entries (localStorage).
 export function DecisionLog() {
   const [views, setViews] = useState<ProvenanceView[]>([]);
   const [corrections, setCorrections] = useState<Correction[]>([]);
@@ -22,8 +22,8 @@ export function DecisionLog() {
         sub="Append-only trail: every finding entered the chain; every correction is a new linked entry, never a mutation."
       />
       <StubBanner>
-        Findings are real; corrections reflect this session only. Phase-3 persists both via
-        provenance/ so the log survives reloads and links cryptographically.
+        Findings are real engine output, anchored to the provenance chain at build time.
+        Corrections append as new linked entries (persisted locally) and re-anchor the chain.
       </StubBanner>
 
       <div className="card">
@@ -42,7 +42,7 @@ export function DecisionLog() {
                 <td>
                   <span className="badge">finding</span>
                 </td>
-                <td>{v.finding.context}</td>
+                <td>{v.savings.recommended_action}</td>
               </tr>
             ))}
             {corrections.map((c) => (

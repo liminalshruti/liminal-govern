@@ -1,6 +1,7 @@
 import { PageHeader } from "../components/Page";
 import { usd } from "../lib/format";
 import { useSpendData } from "../lib/useSpendData";
+import { engineReport } from "../lib/provenance";
 
 // Renders real fixture data: per-vendor monthly spend + reconciled total.
 export function SpendOverview() {
@@ -28,7 +29,7 @@ export function SpendOverview() {
             <div className="card stat">
               <span className="label">Identified savings</span>
               <span className="value" style={{ color: "var(--good)" }}>
-                {usd(data.totalSavings)}/mo
+                {usd(engineReport.monthly_savings_total)}/mo
               </span>
             </div>
           </div>
