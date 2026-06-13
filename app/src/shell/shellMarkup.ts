@@ -48,7 +48,7 @@ export const SHELL_MARKUP = String.raw`
 
   <!-- EXTENDED · the decision ledger (the chain promotes into it) -->
   <div class="ledger" id="ledger">
-    <div class="ledger-h"><span class="lt">◇ Decision <b>ledger</b></span><span class="sub">append-only · hash-linked · corrections never overwrite</span><span class="prove" id="prove">⛓ prove on-chain</span><span class="close" id="lclose">✕</span></div>
+    <div class="ledger-h"><span class="lt">◇ Decision <b>ledger</b></span><span class="sub">append-only · hash-linked · corrections never overwrite</span><span class="lview" id="lview">⟋ spine</span><span class="prove" id="prove">⛓ prove on-chain</span><span class="close" id="lclose">✕</span></div>
     <div class="ledger-b" id="lbody"></div>
   </div>
 

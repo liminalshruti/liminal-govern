@@ -149,7 +149,17 @@ function ledgerKind(e){const x=e[1].toLowerCase();
   return 'find';}
 const LSEAL={find:['finding','✓'],corr:['correction','✎'],dec:['ratified','◇'],ref:['refusal','⊘'],anc:['anchored','⛓']};
 function renderLedger(){
-  const proving = document.getElementById('ledger').classList.contains('proving');
+  const led = document.getElementById('ledger');
+  if(led.classList.contains('spine')){ // Direction A · the Spine (vertical hash-linked timeline; corrections indent)
+    document.getElementById('lbody').innerHTML = `<div class="spine-wrap">` + CHAIN.map((e,i)=>{
+      const k=ledgerKind(e),lab=LSEAL[k][0];
+      const sha = e[3] || `${(0x7d4b+i*131).toString(16).slice(0,4)}…`;
+      const prev = i>0 ? ` ← ${CHAIN[i-1][3] || ((0x7d4b+(i-1)*131).toString(16).slice(0,4)+'…')}` : '';
+      return `<div class="snode ${k}"><div class="srow"><span class="spill">${lab}</span><span class="st">${e[0]}</span></div><div class="sbody">${e[1]}</div><div class="smeta">sha ${sha}${prev}</div></div>`;
+    }).join('') + `</div>`;
+    return;
+  }
+  const proving = led.classList.contains('proving');
   document.getElementById('lbody').innerHTML =
     `<div class="lanehd"><span>local-first vault</span><span class="a">algorand anchor</span></div>` +
     CHAIN.map((e,i)=>{const k=ledgerKind(e),[lab,seal]=LSEAL[k];
@@ -202,6 +212,7 @@ document.addEventListener('drop',e=>{const z=e.target.closest('.slate-zone');if(
   dragId=null;}});
 // EXTENDED · chain→ledger, close, and correction-amend (the thesis: correction appends to the chain)
 document.addEventListener('click',e=>{
+  if(e.target.closest('#lview')){const l=document.getElementById('ledger');l.classList.toggle('spine');const b=document.getElementById('lview');b.classList.toggle('on');b.textContent=l.classList.contains('spine')?'▦ stack':'⟋ spine';renderLedger();return;}
   if(e.target.closest('#prove')){document.getElementById('ledger').classList.toggle('proving');document.getElementById('prove').classList.toggle('on');renderLedger();return;}
   if(e.target.closest('#lclose')){document.getElementById('ledger').classList.remove('open');return;}
   if(e.target.closest('#chain')){openLedger();return;}
