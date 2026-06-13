@@ -4,6 +4,7 @@ import { SpendOverview } from "./screens/SpendOverview";
 import { Utilization } from "./screens/Utilization";
 import { Findings } from "./screens/Findings";
 import { AgentRegistry } from "./screens/AgentRegistry";
+import { AgentFit } from "./screens/AgentFit";
 import { Governance } from "./screens/Governance";
 import { DecisionLog } from "./screens/DecisionLog";
 
@@ -18,6 +19,7 @@ const NAV: NavItem[] = [
   { to: "/utilization", label: "Seat vs. activity" },
   { to: "/findings", label: "Findings" },
   { to: "/agents", label: "Agent registry" },
+  { to: "/agent-fit", label: "Agent fit" },
   { to: "/governance", label: "Governance state" },
   { to: "/decisions", label: "Decision log" },
 ];
@@ -46,6 +48,7 @@ function Shell() {
           <Route path="/utilization" element={<Utilization />} />
           <Route path="/findings" element={<Findings />} />
           <Route path="/agents" element={<AgentRegistry />} />
+          <Route path="/agent-fit" element={<AgentFit />} />
           <Route path="/governance" element={<Governance />} />
           <Route path="/decisions" element={<DecisionLog />} />
           <Route path="*" element={<Navigate to="/spend" replace />} />
