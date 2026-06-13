@@ -97,14 +97,16 @@ npm test          # unified gate → test-all.mjs runs every governance sub-suit
 | Suite | Command it runs | What it proves | Count |
 |---|---|---|---|
 | **root** | `npm run test:root` (`node --test tests/*.test.js`) | the 5 `rubric.md` checks: OKR baseline · classification coverage · misalignment detected · ratified decision anchored · report reconciles to $284 ±$1 | 12 |
-| **plugin** | `npm run test:plugin` | plugin manifest + consent gate, bounded-agent refusal, `/try-liminal` deliberation, correction round-trip | 5 |
-| **provenance** | `npm run test:provenance` | hash determinism + golden vector, chain integrity + byte-flip tamper detection, INSERT-only immutability, reconcile ±$1, local-first no-network anchoring, contract drift-guard | 18 |
+| **plugin** | `npm run test:plugin` | plugin manifest + consent gate, bounded-agent refusal, `/try-liminal` deliberation, correction round-trip, and the onboarding swarm (the cold-start "beats an empty setup" beat) | 14 |
+| **provenance** | `npm run test:provenance` | hash determinism + golden vector, chain integrity + byte-flip tamper detection, INSERT-only immutability, reconcile ±$1, local-first no-network anchoring, contract drift-guard | 22 |
 | **engine** | `npm run test:engine` | deterministic seat-utilization `analyze` + reconcile, provenance-`anchor` of findings, and the bounded `enforceCap` agent's cap/out-of-lane refusals | 16 |
+| **app** | `node --test app/tests/coherence.test.mjs` (run by `test-all.mjs`) | the cockpit's demo-coherence gate: its displayed numbers reconcile to `report.json` ($284 verified · E14 dropped) so the live cockpit can't drift from the pitch | 5 |
 
-All green = **51 checks** (one `engine` live-Opus assertion auto-skips without `ANTHROPIC_API_KEY`, so
-CI runs **50 pass + 1 skip**). The `provenance/` and `engine/` suites need their deps installed (and
-`provenance/` built) first; `test-all.mjs` does that on first run (one-time network) and runs `engine`
-**after** `provenance` because it imports the built provenance dist — then reuses `node_modules` + `dist`.
+All green = **69 checks across 5 suites** (one `engine` live-Opus assertion auto-skips without
+`ANTHROPIC_API_KEY`, so CI runs **68 pass + 1 skip**). The `provenance/` and `engine/` suites need their
+deps installed (and `provenance/` built) first; `test-all.mjs` does that on first run (one-time network)
+and runs `engine` **after** `provenance` because it imports the built provenance dist — then reuses
+`node_modules` + `dist`.
 The deterministic core regenerates `out/report.json` byte-identically on a re-run, so another team can
 re-verify "done" tomorrow on a fresh dataset in one command.
 
@@ -146,8 +148,8 @@ reads `app/vercel.json` for the build settings: `buildCommand` (`npm run build`)
 
 First run prompts you to log in / link the Vercel project. For non-interactive (CI) use, export a token
 first — `export VERCEL_TOKEN=...` — and `deploy.sh` passes it through automatically. No secrets are
-stored in the repo. **Once deployed, paste the URL into the `LIVE_DEMO_URL` placeholder at the top of
-this README.**
+stored in the repo. **The live URL is already pinned at the top of this README** and auto-deploys from
+`main` (Vercel root directory `app/`), so a merge to `main` redeploys the cockpit.
 
 ## How it was built (orchestration)
 The product is built and verified by a **dynamic Claude Code workflow** (`.claude/workflows/`) running
