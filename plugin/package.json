@@ -1,0 +1,15 @@
+{
+  "name": "liminal-govern-plugin",
+  "version": "0.1.0",
+  "description": "The Liminal Claude Code plugin front door — bounded agents that disagree, and a correction loop that becomes the record. Public-safe; zero runtime dependencies (uses node:sqlite and the claude CLI / optional @anthropic-ai/sdk).",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "try": "node skills/try-liminal/run.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

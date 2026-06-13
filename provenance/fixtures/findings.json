@@ -1,0 +1,89 @@
+{
+  "_doc": "Spend-audit demo fixture: three SavingsFindings expressed as provenance packets. Each finding cites raw source rows and carries a monthly_savings claim; the three sum to the report total (reconciles ±$1). Used by `provenance ingest fixtures/findings.json`.",
+  "report_total_monthly_savings": 3060,
+  "packets": [
+    {
+      "id": "find_figma",
+      "kind": "finding",
+      "context": "Figma Enterprise: 40 seats purchased, 12 active in last 30d (source rows: spend_figma, seats_figma)",
+      "reads": [
+        {
+          "agent_name": "analyst",
+          "archetype": "diligence",
+          "quoted": "$2400/mo, 40 seats, $60/seat",
+          "situation": "enterprise tier billed annually",
+          "hidden_risk": "annual lock-in until renewal",
+          "next_move": "recompute utilization from raw activity",
+          "ordinal": 0
+        },
+        {
+          "agent_name": "auditor",
+          "archetype": "dissent",
+          "quoted": "12 of 40 seats active (30%)",
+          "situation": "28 idle seats",
+          "hidden_risk": "paying for 28 unused seats = $1680/mo",
+          "next_move": "downgrade to 15 seats",
+          "ordinal": 1
+        }
+      ],
+      "monthly_savings": 1680,
+      "created_at": "2026-06-13T00:00:00.000Z"
+    },
+    {
+      "id": "find_notion",
+      "kind": "finding",
+      "context": "Notion Business: 50 seats, 31 active in last 30d (source rows: spend_notion, seats_notion)",
+      "reads": [
+        {
+          "agent_name": "analyst",
+          "archetype": "diligence",
+          "quoted": "$750/mo, 50 seats, $15/seat",
+          "situation": "monthly billing, downgradeable",
+          "hidden_risk": "shared-page access tied to seats",
+          "next_move": "verify which idle seats hold sole page ownership",
+          "ordinal": 0
+        },
+        {
+          "agent_name": "auditor",
+          "archetype": "dissent",
+          "quoted": "19 idle seats = $285/mo",
+          "situation": "62% utilization",
+          "hidden_risk": "reclaiming seats may orphan pages",
+          "next_move": "reclaim 12 safe seats first",
+          "refusal": "I do not assess page-ownership migration risk — that is the Operator's lane",
+          "refusal_kind": "out-of-lane",
+          "ordinal": 1
+        }
+      ],
+      "monthly_savings": 180,
+      "created_at": "2026-06-13T00:00:01.000Z"
+    },
+    {
+      "id": "find_datadog",
+      "kind": "finding",
+      "context": "Datadog Pro: committed host tier, average 40% below commit (source rows: spend_datadog, usage_datadog)",
+      "reads": [
+        {
+          "agent_name": "analyst",
+          "archetype": "diligence",
+          "quoted": "$3000/mo committed, $1800 actual usage",
+          "situation": "annual commit overshoots real usage by 40%",
+          "hidden_risk": "commit cannot be lowered mid-term",
+          "next_move": "right-size commit at renewal",
+          "ordinal": 0
+        },
+        {
+          "agent_name": "auditor",
+          "archetype": "dissent",
+          "quoted": "$1200/mo over-committed",
+          "situation": "renewal in 2 months",
+          "hidden_risk": "missing the renewal window forfeits the savings for a year",
+          "next_move": "queue renewal-window action now",
+          "ordinal": 1
+        }
+      ],
+      "monthly_savings": 1200,
+      "created_at": "2026-06-13T00:00:02.000Z"
+    }
+  ]
+}
