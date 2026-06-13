@@ -1,0 +1,15 @@
+row_id,vendor,active_seats_30d
+SP01,Cursor,6
+SP02,Linear,33
+SP03,Notion,31
+SP04,Figma,7
+SP05,Datadog,14
+SP06,Vercel,9
+SP07,Granola,12
+SP08,GitHub Copilot,11
+SP09,Slack,58
+SP10,Zoom,15
+SP11,Claude API,34
+SP12,Retool,3
+SP13,Amplitude,2
+SP14,HubSpot,9

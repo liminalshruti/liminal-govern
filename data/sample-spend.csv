@@ -1,0 +1,15 @@
+row_id,vendor,plan,seats_purchased,monthly_cost,contract_term
+SP01,Cursor,Business,40,1600,monthly
+SP02,Linear,Standard,35,280,monthly
+SP03,Notion,Plus,50,500,monthly
+SP04,Figma,Organization,20,900,monthly
+SP05,Datadog,Pro,15,1125,monthly
+SP06,Vercel,Enterprise,10,2000,monthly
+SP07,Granola,Business,30,450,monthly
+SP08,GitHub Copilot,Business,40,760,monthly
+SP09,Slack,Business Plus,60,900,monthly
+SP10,Zoom,Business,25,500,monthly
+SP11,Claude API,Team,40,1200,monthly
+SP12,Retool,Team,12,600,monthly
+SP13,Amplitude,Growth,8,1000,annual_prepaid
+SP14,HubSpot,Professional,10,900,monthly

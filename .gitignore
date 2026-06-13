@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+dist-electron/
+build/
+release/
+target/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.local
+*.env
+.secrets/
+
+# vaults / local data (never commit a real vault)
+*.db
+*.db-journal
+*.sqlite
+vault.db
+
+# os / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# claude
+.claude/settings.local.json
