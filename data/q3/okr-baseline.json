@@ -1,0 +1,23 @@
+{
+  "budget_period": "2026-07",
+  "approved_model": "claude-opus-4-8",
+  "cohort": ["Arjun", "Bianca", "Chen", "Diego", "Elif", "Farid", "Priya"],
+  "objectives": [
+    {
+      "id": "O1",
+      "name": "Accelerate product development",
+      "allocation": 0.6,
+      "key_results": ["Ship the billing + search launches"],
+      "tracking_streams": ["github_prs", "feature_specs", "claude_usage"],
+      "aligned_task_categories": ["product_dev", "architecture_review"]
+    },
+    {
+      "id": "O2",
+      "name": "Improve security hardening",
+      "allocation": 0.4,
+      "key_results": ["Complete SOC2 control remediation"],
+      "tracking_streams": ["security_tickets", "claude_usage"],
+      "aligned_task_categories": ["security_hardening"]
+    }
+  ]
+}

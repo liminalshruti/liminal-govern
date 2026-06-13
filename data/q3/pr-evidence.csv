@@ -1,0 +1,5 @@
+pr_id,date,employee,title,workstream,linked_usage_event
+PR-G101,2026-07-02,Arjun,Billing webhooks,product,G01
+PR-G102,2026-07-03,Bianca,Saved searches,product,G02
+PR-G103,2026-07-05,Priya,calendar-sync polish (timezone handling UI + API),product,G14
+PR-G105,2026-07-02,Farid,SOC2 remediation,security,G08

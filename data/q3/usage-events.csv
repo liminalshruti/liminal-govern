@@ -1,0 +1,13 @@
+event_id,date,employee,model,task_category,task_label,est_cost_usd
+G01,2026-07-02,Arjun,claude-opus-4-8,product_dev,Build billing webhooks,400
+G02,2026-07-03,Bianca,claude-opus-4-8,product_dev,Feature: saved searches,360
+G03,2026-07-04,Chen,claude-opus-4-8,product_dev,Refactor billing ledger,320
+G08,2026-07-02,Farid,claude-opus-4-8,security_hardening,SOC2 control remediation,300
+G09,2026-07-05,Diego,claude-opus-4-8,security_hardening,Pen-test finding fixes,240
+G12,2026-07-03,Elif,claude-opus-4-8,calendar_admin,Book all-hands + juggle room calendars,90
+G13,2026-07-06,Bianca,claude-opus-4-8,calendar_admin,Send recurring sync invites,90
+G14,2026-07-04,Priya,claude-opus-4-8,calendar_admin,calendar-sync polish: timezone handling UI + API,150
+G15,2026-07-05,Arjun,claude-opus-4-8,summarization,Summarize compliance PDF,80
+G16,2026-07-09,Diego,claude-opus-4-8,summarization,Weekly Slack digest,70
+G17,2026-07-06,Chen,claude-opus-4-8,unclassified,Prompt iteration / scratch,120
+G20,2026-07-03,Bianca,claude-haiku-4-5,summarization,Standup digest,10
