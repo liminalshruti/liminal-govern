@@ -1,0 +1,25 @@
+{
+  "name": "@liminal-govern/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing the liminal-govern spend-governance engine + provenance chain as tools, so any Claude session can run a spend audit and query provenance over stdio.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "liminal-govern-mcp": "./src/server.ts"
+  },
+  "scripts": {
+    "start": "node --import tsx src/server.ts",
+    "smoke": "node --import tsx test/smoke.test.ts",
+    "test": "node --import tsx --test test/smoke.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
