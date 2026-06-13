@@ -86,31 +86,58 @@ test("Auditor cross-stream goes live only with >=2 live source streams", async (
 
 // ── Full swarm — deliberation bootstrap (fixture path, deterministic) ───────
 
-test("bootstrap posts an in-lane candidate per live source, partial-result safe", async () => {
-  // forceFixture keeps it LLM-free and deterministic: no network, no Opus.
-  const { mode, candidates, summary } = await bootstrapSwarm({ forceFixture: true });
-  assert.equal(mode, "fixture");
-  assert.ok(candidates.length >= 1, "at least one candidate posted");
-  for (const c of candidates) {
-    assert.equal(c.status, "ingested");
-    assert.equal(c.mode, "fixture");
-    assert.equal(c.refused, false, "owning agent works its own source, not refuses");
-    assert.ok(c.interpretation.length > 0);
-    assert.ok(["Analyst", "SDR", "Auditor"].includes(c.agent_owner));
+// Deterministic source signal: a throwaway git repo with one commit, pinned via
+// LIMINAL_GIT_REPO. Without this, these tests depend on ambient signal (the dev
+// machine's ~/.claude/projects or a .git in cwd) — which a clean CI runner lacks,
+// so the swarm reports `cold` and the assertions flip. The temp repo gives the git
+// probe a real "scanning" stream in ANY environment.
+async function withGitSignal(fn) {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "liminal-signal-"));
+  const git = (args) => execFileSync("git", ["-C", repo, ...args], { stdio: "ignore" });
+  git(["init", "-q"]);
+  git(["config", "user.email", "t@example.com"]);
+  git(["config", "user.name", "t"]);
+  fs.writeFileSync(path.join(repo, "seed.txt"), "x");
+  git(["add", "."]);
+  git(["commit", "-q", "-m", "seed"]);
+  const saved = process.env.LIMINAL_GIT_REPO;
+  process.env.LIMINAL_GIT_REPO = repo;
+  try {
+    return await fn();
+  } finally {
+    if (saved === undefined) delete process.env.LIMINAL_GIT_REPO;
+    else process.env.LIMINAL_GIT_REPO = saved;
+    fs.rmSync(repo, { recursive: true, force: true });
   }
-  // Candidates are owned in lane: cross-stream is the Auditor's, source streams
-  // never belong to the Auditor.
-  const auditorSources = candidates.filter((c) => c.agent_owner === "Auditor");
-  for (const c of auditorSources) assert.equal(c.source, "cross-stream");
-  assert.equal(summary.candidates_total, candidates.length);
-});
+}
 
-test("bootstrap adds the Auditor cross-stream candidate only with >=2 source candidates", async () => {
-  const { candidates } = await bootstrapSwarm({ forceFixture: true });
-  const sourceCands = candidates.filter((c) => c.source !== "cross-stream");
-  const hasAuditor = candidates.some((c) => c.source === "cross-stream");
-  assert.equal(hasAuditor, sourceCands.length >= 2);
-});
+test("bootstrap posts an in-lane candidate per live source, partial-result safe", () =>
+  withGitSignal(async () => {
+    // forceFixture keeps it LLM-free and deterministic: no network, no Opus.
+    const { mode, candidates, summary } = await bootstrapSwarm({ forceFixture: true });
+    assert.equal(mode, "fixture");
+    assert.ok(candidates.length >= 1, "at least one candidate posted");
+    for (const c of candidates) {
+      assert.equal(c.status, "ingested");
+      assert.equal(c.mode, "fixture");
+      assert.equal(c.refused, false, "owning agent works its own source, not refuses");
+      assert.ok(c.interpretation.length > 0);
+      assert.ok(["Analyst", "SDR", "Auditor"].includes(c.agent_owner));
+    }
+    // Candidates are owned in lane: cross-stream is the Auditor's, source streams
+    // never belong to the Auditor.
+    const auditorSources = candidates.filter((c) => c.agent_owner === "Auditor");
+    for (const c of auditorSources) assert.equal(c.source, "cross-stream");
+    assert.equal(summary.candidates_total, candidates.length);
+  }));
+
+test("bootstrap adds the Auditor cross-stream candidate only with >=2 source candidates", () =>
+  withGitSignal(async () => {
+    const { candidates } = await bootstrapSwarm({ forceFixture: true });
+    const sourceCands = candidates.filter((c) => c.source !== "cross-stream");
+    const hasAuditor = candidates.some((c) => c.source === "cross-stream");
+    assert.equal(hasAuditor, sourceCands.length >= 2);
+  }));
 
 test("bootstrap reports cold when no source has signal", async () => {
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), "liminal-cold-"));
