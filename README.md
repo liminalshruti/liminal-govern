@@ -45,6 +45,43 @@ agent routing + the trustless agent registry + provenance + non-surveillance, al
   `DEMO.md`.
 - `CONTRIBUTIONS.md` — **what was built today vs. prior art** (read this — DQ-relevant).
 
+## Run the cockpit locally
+The operator cockpit (`app/`) is a Vite + React + TypeScript web app — no native toolchain required.
+
+```bash
+cd app
+npm install
+npm run dev        # → http://localhost:5173  (hot-reloading dev server)
+```
+
+Other useful scripts (all run from `app/`):
+
+```bash
+npm run build      # tsc -b && vite build  →  static bundle in app/dist/
+npm run preview    # serve the production build locally
+npm run typecheck  # tsc --noEmit (type-check only)
+```
+
+See `app/README.md` for the screen map and the provenance data-seam.
+
+## Deploy to a live URL (one command)
+The cockpit ships as a static SPA to **Vercel** (lane G). From the repo root:
+
+```bash
+./deploy.sh              # verify a clean production build, then deploy app/ to PRODUCTION
+./deploy.sh --preview    # deploy a non-prod preview URL instead
+./deploy.sh --build-only # just verify the production build, no deploy
+```
+
+`deploy.sh` runs `cd app && npm install && npm run build`, then
+`npx vercel deploy --prod app/`. Vercel reads `app/vercel.json` for the build
+settings: `buildCommand` (`npm run build`), `outputDirectory` (`dist`), and the
+SPA `rewrites` that route every path back to `index.html` for client-side routing.
+
+First run prompts you to log in / link the Vercel project. For non-interactive
+(CI) use, export a token first — `export VERCEL_TOKEN=...` — and `deploy.sh`
+passes it through automatically. No secrets are stored in the repo.
+
 ## How it was built (orchestration)
 The product is built and verified by a **dynamic Claude Code workflow** (`.claude/workflows/`) running
 on Opus 4.8: bounded specialist agents deliberate, an adversarial reviewer refutes weak claims, and the
