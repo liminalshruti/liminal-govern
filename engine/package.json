@@ -1,0 +1,28 @@
+{
+  "name": "@liminal-govern/engine",
+  "version": "0.1.0",
+  "description": "AI Spend Governance engine: deterministic seat-utilization analysis, provenance-anchored savings findings, and a bounded Opus enforcement agent that judges spend decisions (not people).",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "engine": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "analyze": "node --import tsx src/cli.ts analyze",
+    "anchor": "node --import tsx src/cli.ts anchor",
+    "enforce": "node --import tsx src/cli.ts enforce"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
