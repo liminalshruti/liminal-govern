@@ -2,58 +2,38 @@
 /**
  * prebuild.mjs — runs automatically before `npm run build` (npm `prebuild` lifecycle hook).
  *
- * Goal: bake REAL engine output into the cockpit, while still being deployable from an
- * app-only root (e.g. Vercel with Root Directory = app, where ../engine is not present).
+ * SINGLE SOURCE OF TRUTH: the engine's `out/report.json` (the SAME artifact the S4
+ * deliberation workflow and the pitch deck use). This bakes it into the bundle so the
+ * cockpit numbers are byte-identical to the numbers on stage.
  *
  * Strategy:
- *   • FULL REPO (../engine + ../provenance present): build the provenance lib, build the
- *     engine, then run generate-findings.mjs to (re)bake src/generated/engine-findings.json
- *     from a live analyze() + anchorFindings() run. This is the source of truth.
- *   • APP-ONLY (siblings absent, e.g. Vercel): skip regeneration and use the committed
- *     baked artifact — which itself was produced by the real engine at commit time. Fail
- *     loudly only if the artifact is missing (there'd be nothing to ship).
- *
- * Either way the cockpit ships engine-produced findings + receipts.
+ *   • FULL REPO (../out/report.json present): copy it → src/generated/report.json.
+ *     This is the source of truth; refreshing it re-syncs the cockpit to the engine.
+ *   • APP-ONLY (e.g. Vercel with Root Directory = app, ../out absent): use the committed
+ *     src/generated/report.json (itself copied from out/report.json at commit time).
+ *     Fail loudly only if it is missing (there'd be nothing to ship).
  */
 
-import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = resolve(HERE, "..");
 const REPO = resolve(APP, "..");
-const ENGINE = resolve(REPO, "engine");
-const PROVENANCE = resolve(REPO, "provenance");
-const ARTIFACT = resolve(APP, "src/generated/engine-findings.json");
+const SOURCE = resolve(REPO, "out/report.json");
+const BAKED = resolve(APP, "src/generated/report.json");
 
-function run(cmd, cwd = APP) {
-  console.log(`  $ ${cmd}`);
-  execSync(cmd, { cwd, stdio: "inherit" });
-}
-
-const haveEngine = existsSync(resolve(ENGINE, "package.json"));
-const haveProvenance = existsSync(resolve(PROVENANCE, "package.json"));
-
-if (haveEngine && haveProvenance) {
-  console.log("\n  prebuild: full repo detected — baking findings from the REAL engine.\n");
-  // provenance is the engine's chain dependency; build it first.
-  run("npm install", PROVENANCE);
-  run("npm run build", PROVENANCE);
-  run("npm install", ENGINE);
-  run("npm run build", ENGINE);
-  run("node scripts/generate-findings.mjs", APP);
+if (existsSync(SOURCE)) {
+  mkdirSync(dirname(BAKED), { recursive: true });
+  copyFileSync(SOURCE, BAKED);
+  console.log("\n  prebuild: baked out/report.json → src/generated/report.json (single source of truth).\n");
+} else if (existsSync(BAKED)) {
+  console.log("\n  prebuild: ../out/report.json absent (app-only build) — using committed src/generated/report.json.\n");
 } else {
-  console.log(
-    "\n  prebuild: engine/provenance siblings not present (app-only build, e.g. Vercel).",
+  console.error(
+    "\n  prebuild: FATAL — no out/report.json and no committed src/generated/report.json to ship.\n" +
+      "  Run the engine to produce out/report.json, then `npm run build`.\n",
   );
-  if (!existsSync(ARTIFACT)) {
-    console.error(
-      "  prebuild: FATAL — no committed src/generated/engine-findings.json to ship.\n" +
-        "  Run a full-repo `npm run build` (with ../engine + ../provenance) and commit the artifact.\n",
-    );
-    process.exit(1);
-  }
-  console.log("  prebuild: using the committed engine-baked artifact (engine-findings.json).\n");
+  process.exit(1);
 }

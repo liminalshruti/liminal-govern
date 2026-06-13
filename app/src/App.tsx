@@ -1,27 +1,24 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { Hero } from "./screens/Hero";
 import { SpendOverview } from "./screens/SpendOverview";
-import { Utilization } from "./screens/Utilization";
 import { Findings } from "./screens/Findings";
 import { AgentRegistry } from "./screens/AgentRegistry";
-import { AgentFit } from "./screens/AgentFit";
 import { Governance } from "./screens/Governance";
 import { DecisionLog } from "./screens/DecisionLog";
 
 interface NavItem {
   to: string;
   label: string;
+  step: string;
 }
 
-// The 6 cockpit screens (hero lives outside the shell at "/").
+// The cockpit screens, in pitch order (hero lives outside the shell at "/").
 const NAV: NavItem[] = [
-  { to: "/spend", label: "Spend overview" },
-  { to: "/utilization", label: "Seat vs. activity" },
-  { to: "/findings", label: "Findings" },
-  { to: "/agents", label: "Agent registry" },
-  { to: "/agent-fit", label: "Agent fit" },
-  { to: "/governance", label: "Governance state" },
-  { to: "/decisions", label: "Decision log" },
+  { to: "/spend", label: "Spend overview", step: "1" },
+  { to: "/findings", label: "Findings & corrections", step: "2" },
+  { to: "/governance", label: "Governance & cap", step: "3" },
+  { to: "/agents", label: "Approved agents", step: "4" },
+  { to: "/decisions", label: "Decision log", step: "5" },
 ];
 
 function Shell() {
@@ -30,7 +27,7 @@ function Shell() {
       <nav className="sidebar">
         <NavLink to="/" className="brand">
           Liminal Govern
-          <small>AI Spend Cockpit</small>
+          <small>AI Spend Governance</small>
         </NavLink>
         {NAV.map((n) => (
           <NavLink
@@ -38,18 +35,20 @@ function Shell() {
             to={n.to}
             className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
           >
+            <span className="step">{n.step}</span>
             {n.label}
           </NavLink>
         ))}
+        <div className="sidebar-foot mono">
+          source of truth · out/report.json
+        </div>
       </nav>
       <main className="main">
         <Routes>
           <Route path="/spend" element={<SpendOverview />} />
-          <Route path="/utilization" element={<Utilization />} />
           <Route path="/findings" element={<Findings />} />
-          <Route path="/agents" element={<AgentRegistry />} />
-          <Route path="/agent-fit" element={<AgentFit />} />
           <Route path="/governance" element={<Governance />} />
+          <Route path="/agents" element={<AgentRegistry />} />
           <Route path="/decisions" element={<DecisionLog />} />
           <Route path="*" element={<Navigate to="/spend" replace />} />
         </Routes>
