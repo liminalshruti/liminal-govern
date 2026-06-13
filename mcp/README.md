@@ -72,12 +72,33 @@ path with the absolute path to `mcp/src/server.ts`:
 Then, in any Claude session: *"run a spend audit"*, *"verify the provenance chain"*, *"show me
 finding F-E14 and why it was dropped"*.
 
-### Shipping it from the Liminal plugin (next step)
+### Shipping it from the Liminal plugin (wired)
 
-Because the server lives in the top-level `mcp/` dir (outside `plugin/`), the plugin can ship it by
-adding a `plugin/.mcp.json` whose args point at `${CLAUDE_PLUGIN_ROOT}/../mcp/src/server.ts` — so
-`/plugin install` brings the governance tools along. Left as a documented follow-on to keep this
-additive lane from touching `plugin/`.
+The Liminal plugin ships this server on install. `plugin/.claude-plugin/plugin.json` declares
+`"mcpServers": "./.mcp.json"`, and [`plugin/.mcp.json`](../plugin/.mcp.json) launches it:
+
+```json
+{
+  "mcpServers": {
+    "liminal-govern": {
+      "command": "bash",
+      "args": ["-c", "cd \"${CLAUDE_PLUGIN_ROOT}/../mcp\" && … && exec node_modules/.bin/tsx src/server.ts"]
+    }
+  }
+}
+```
+
+So enabling the plugin registers the four governance tools automatically. Details:
+
+- `${CLAUDE_PLUGIN_ROOT}` resolves to the installed `plugin/` dir; `../mcp` is its sibling in the
+  same repo/clone (this server lives in the top-level `mcp/`, not under `plugin/`).
+- The launcher is **self-bootstrapping**: on first run it `npm install`s this server's deps and
+  builds `provenance/dist` if missing, then `exec`s the server. Subsequent runs skip straight to
+  boot. (A `bash -c "cd … && exec …"` wrapper is used because the MCP `cwd` field is currently a
+  no-op in Claude Code.)
+- Caveat: a plugin installed from a **marketplace subpath** may copy only the `plugin/` subdir, in
+  which case the sibling `mcp/` is absent — install from the full repo (or `--plugin-dir`) for the
+  bundled server. Standalone use (Option A/B above) always works.
 
 ## Test
 
