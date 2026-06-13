@@ -112,7 +112,7 @@ const SURFACES = {
       </div></div>`},
 };
 // provenance chain grows as you advance the flow
-const CHAIN = [
+const CHAIN = (typeof window!=='undefined' && window.__govChain && window.__govChain.length) ? window.__govChain : [
   ['12:01','setup · 5 streams ingested',0], ['12:02','baseline · 60/40 set',0],
   ['12:04','slate hardened · 5 tiles',0], ['12:05','deliberation · 8 agents',0],
   ['12:05','exec-comms · refused out of lane',1], ['12:05','finding · $284 verified',0],
@@ -157,7 +157,7 @@ function renderLedger(){
       const rec = proving ? (onchain
         ? `<div class="areceipt">anchored<br>txn LIM…${(0x4002+i).toString(16).toUpperCase()}</div>`
         : `<div class="areceipt none">local-first<br>not anchored</div>`) : '';
-      const sha = `${(0x7d4b+i*131).toString(16).slice(0,4)}…${(0xa284-i*97).toString(16).slice(0,4)}`;
+      const sha = e[3] || `${(0x7d4b+i*131).toString(16).slice(0,4)}…${(0xa284-i*97).toString(16).slice(0,4)}`;
       return `<div class="lrow"><div class="lpage ${k}"><div class="lh"><span class="lk">${lab}</span><span class="ls">${seal}</span></div><div class="lb">${e[1]}</div><div class="lf">${e[0]} · sha ${sha}</div></div>${rec}</div>`;
     }).join('');
 }
@@ -209,8 +209,12 @@ document.addEventListener('click',e=>{
   if(e.target.id==='palette'){togglePal(false);return;}
   const pr=e.target.closest('[data-goto]');if(pr){go(pr.dataset.goto);togglePal(false);return;}
   const am=e.target.closest('[data-amend]');
-  if(am){CHAIN.push(['12:07','operator correction · re-anchored',0]);renderChain(99);
-    am.textContent='✓ correction appended — your read now'; am.disabled=true; am.style.opacity=.65; am.style.cursor='default';}
+  if(am){ am.disabled=true; const orig=am.textContent; am.textContent='signing…';
+    const fallback=['12:07','operator correction · re-anchored',0];
+    Promise.resolve((typeof window!=='undefined' && window.__govCorrect) ? window.__govCorrect() : fallback)
+      .then(entry=>{CHAIN.push(entry||fallback);renderChain(99);
+        am.textContent='✓ correction appended — your read now'; am.style.opacity=.65; am.style.cursor='default';})
+      .catch(()=>{CHAIN.push(fallback);renderChain(99);am.textContent=orig;am.disabled=false;});}
 });
 // EXTENDED · keyboard — ⌘K palette · number keys 1–9/0 jump to a surface · Esc/Enter in palette
 document.getElementById('pal-input').addEventListener('input',ev=>renderPal(ev.target.value));
