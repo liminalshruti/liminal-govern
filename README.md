@@ -10,7 +10,7 @@
 >
 > Built at the Claude Build Day (2026-06-13) on **Opus 4.8**, using Claude Code **dynamic workflows**.
 
-**Live demo:** `LIVE_DEMO_URL` *(placeholder — the deploy lane fills this in; see "Deploy to a live URL").*
+**Live demo:** **https://liminal-govern-cockpit.vercel.app** — the cockpit, live. Auto-deploys from `main` (Vercel root directory `app/`).
 
 ## The problem
 You run an AI-native team. Your CEO just handed a few engineers a frontier model and a real credit
