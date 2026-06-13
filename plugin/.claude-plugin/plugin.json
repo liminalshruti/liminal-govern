@@ -1,0 +1,39 @@
+{
+  "name": "liminal-govern",
+  "description": "Try Liminal from your terminal. Bounded agents read a brief and disagree; the in-lane agent works while the others refuse and name the correct agent. Your correction becomes the record. On enable it offers to install the Liminal desktop app so the vault outlives the session. Built on Opus 4.8.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Liminal",
+    "url": "https://theliminalspace.io"
+  },
+  "homepage": "https://github.com/liminalshruti/liminal-govern",
+  "repository": "https://github.com/liminalshruti/liminal-govern",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "deliberation",
+    "correction-loop",
+    "bounded-agents",
+    "refusal",
+    "governance",
+    "liminal",
+    "opus"
+  ],
+  "defaultEnabled": false,
+  "commands": "./commands/",
+  "agents": [
+    "./agents/liminal-analyst.md",
+    "./agents/liminal-auditor.md",
+    "./agents/liminal-sdr.md"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "anthropic_api_key": {
+      "type": "string",
+      "title": "Anthropic API key",
+      "description": "Your Anthropic API key (starts with sk-ant-api). Only required if ANTHROPIC_API_KEY is not already set in your shell, and you are not authenticated via the claude CLI.",
+      "sensitive": true
+    }
+  }
+}
