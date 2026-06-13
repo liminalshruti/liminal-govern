@@ -19,8 +19,12 @@ npm run typecheck  # tsc --noEmit
 npm run preview    # serve the production build
 ```
 
-Deploy (lane G): set the Vercel project root to `app/`. `vercel.json` already routes
-all paths to `index.html` for client-side routing.
+Deploy (lane G): run **`./deploy.sh`** from the repo root — it verifies a clean
+production build and then ships `app/` to Vercel (`npx vercel deploy --prod app/`).
+`app/vercel.json` pins the build for Vercel: `framework: vite`, `buildCommand:
+npm run build`, `outputDirectory: dist`, and SPA `rewrites` so every path routes to
+`index.html` for client-side routing. (Equivalently: set the Vercel project root to
+`app/`.) See the repo-root `README.md` for the full deploy notes.
 
 ## Screens
 
