@@ -1,5 +1,7 @@
 # Liminal — AI Spend Governance for Founder/Operators
 
+[![CI](https://github.com/liminalshruti/liminal-govern/actions/workflows/ci.yml/badge.svg)](https://github.com/liminalshruti/liminal-govern/actions/workflows/ci.yml)
+
 > **Govern AI spend. Upgrade agent selection. Ratify decisions. Prove ROI.**
 >
 > Liminal is a **Claude Code plugin + desktop governance layer** for founders/operators who need to
@@ -8,16 +10,30 @@
 >
 > Built at the Claude Build Day (2026-06-13) on **Opus 4.8**, using Claude Code **dynamic workflows**.
 
-## The problem
-Founders/operators running AI-native teams are handed expensive AI budgets before they have systems to
-govern them. They can't prove usage advances company goals, can't explain which models/agents are worth
-the cost, and can't govern usage without becoming a surveillance layer.
+**Live demo:** `LIVE_DEMO_URL` *(placeholder — the deploy lane fills this in; see "Deploy to a live URL").*
 
-## What it does (the workflow — not a dashboard)
+## The problem
+You run an AI-native team. Your CEO just handed a few engineers a frontier model and a real credit
+budget, and wants ROI. Right now — can you prove that budget isn't being burned on calendar scheduling?
+Can you govern it **without spying on your people?** Founders/operators are deploying agents faster than
+they can govern them: they can't prove usage advances company goals, can't explain which models/agents
+are worth the cost, and can't govern usage without becoming a surveillance layer.
+
+## Who it's for
+The **AI-transformation / engineering leader with budget authority over advanced-model access** (persona:
+**Maria**) at a 200–5,000-person company piloting AI agents. The accountability lands on the **agents'
+work and the spend** — never on employees.
+
+## What it does — a governance *workflow*, not a dashboard
+The app shows a Tray, a Slate, a decision trail, and a report — but **the product is the workflow**, not
+the charts. (A dashboard-as-the-main-feature is explicitly *not* what this is; the magic is the chained
+governance gate.)
+
 `liminal setup` → map AI usage to **OKRs** → pull diffuse context into a hardened working set →
-**bounded agents deliberate** over spend/usage/agent-fit/risk → surface a finding → recommend a
-**better verified internal agent** (trustless registry) → **ratify a decision** into a **provenance
-trail** team agents reference going forward → generate an exec-ready **AI Spend Brief**.
+**bounded agents deliberate** over spend/usage/agent-fit/risk → an adversarial reviewer **refutes weak
+claims** → surface a quantified finding → recommend a **better verified internal agent** (trustless
+registry) → **ratify a decision** into a **provenance trail** team agents reference going forward →
+generate an exec-ready **AI Spend Brief**.
 
 **The one decision that proves the product:** *"Opus 4.8 cannot be used for calendar management — use
 the verified CalendarOps Agent instead."* That single ratified policy demonstrates spend governance +
@@ -27,9 +43,10 @@ agent routing + the trustless agent registry + provenance + non-surveillance, al
 | Layer | What it does | Where |
 |---|---|---|
 | **Claude Code plugin** | installs Liminal, runs setup, connects existing context/MCPs | `plugin/` |
-| **Desktop app** | operator cockpit: Tray, Slate, decisions, reports | `app/` |
+| **Desktop / web cockpit** | operator surfaces: Tray, Slate, decisions, reports | `app/` |
+| **Governance engine** | deterministic spend analysis + bounded Opus cap-enforcement | `engine/` |
 | **Provenance chain** | hash-linked, append-only decision/policy trail + receipts | `provenance/` |
-| **Deliberation workflow** | 8 bounded agents analyze spend/usage/agent-fit/risk/ROI | `.claude/workflows/` |
+| **Deliberation workflow** | bounded agents analyze spend/usage/agent-fit/risk/ROI, then self-verify | `.claude/workflows/` |
 | **Trustless agent registry** | recommends better/verified internal agents | `app/` (reused) |
 | **Fixture** | seeded AI-usage governance dataset for the demo | `data/` |
 
@@ -37,13 +54,65 @@ agent routing + the trustless agent registry + provenance + non-surveillance, al
 - `plugin/` — the Claude Code plugin (front door + `liminal setup` + onboarding swarm). **Stream S2.**
 - `provenance/` — clean local-first provenance chain (hash-linked log, anchor receipts, corrections,
   decision/policy packets). **Stream S1.**
+- `engine/` — the AI Spend Governance engine: deterministic seat-utilization analysis, provenance-anchored
+  savings findings, and a bounded Opus agent that enforces a spend cap (judges decisions, not people).
 - `app/` — the public desktop/web governance cockpit slice + the reused trustless-agents UI. **S3/S5.**
-- `.claude/workflows/` — the saved dynamic workflow + this repo's orchestration entry. **Stream S4.**
-- `data/` — the seeded AI-usage governance fixture. 
-- `rubric.md` — model-gradable "done" criteria. `tests/` — the verification suite.
-- `coordination/` — `contract.ts` (shared wire types), `BUILD_CHECKLIST.md`, `INTEGRATION_HANDOFF.md`,
-  `DEMO.md`.
+- `.claude/workflows/` — the saved dynamic workflow + its deterministic core. **Stream S4.**
+- `data/` — the seeded AI-usage governance fixture.
+- `coordination/contract.ts` — the shared wire types (the contract the `provenance/` mirror is drift-guarded against).
+- `BRIEF.md` — the `/spend-audit` problem brief judges read alongside `rubric.md`.
+- `rubric.md` — model-gradable "done" criteria. `tests/` — the root verification suite.
 - `CONTRIBUTIONS.md` — **what was built today vs. prior art** (read this — DQ-relevant).
+- `SUBMISSION_CHECKLIST.md` — the 5pm pre-submit gate.
+
+## Run the /spend-audit demo
+The orchestration artifact is a dynamic Claude Code workflow with a deterministic core. It classifies
+every Opus-4.8 usage event against the OKR baseline, detects misalignment, runs an **adversarial
+cross-check that drops weak claims** (the E14 calendar-sync trap → refuted by PR-103, naïve $446 →
+verified $284), and anchors the surviving findings + the ratified decision into the provenance chain.
+
+```bash
+# 1. Build the provenance chain the workflow anchors into (one-time; needs network for deps):
+npm --prefix provenance install && npm --prefix provenance run build
+
+# 2. Run the audit on the seeded fixture → regenerates out/report.json (deterministically):
+node .claude/workflows/spend-audit.mjs data/usage-events.csv
+
+# 3. Re-run on a fresh dataset in one command (rerunnability — the Orchestration ask):
+node .claude/workflows/spend-audit.mjs data/q3/usage-events.csv out/report-q3.json
+```
+
+See `BRIEF.md` for the full problem framing and `.claude/workflows/README.md` for the workflow phases.
+
+## How "done" is verified (no human in the loop)
+"Done" is gated against `rubric.md` + the test suites — the model grades itself, and the workflow only
+emits success when all five rubric checks hold. **One green run verifies the whole submission:**
+
+```bash
+npm test          # unified gate → test-all.mjs runs every governance sub-suite in one command
+```
+
+`npm test` (root) runs **`test-all.mjs`**, which shells into each package's own suite:
+
+| Suite | Command it runs | What it proves | Count |
+|---|---|---|---|
+| **root** | `npm run test:root` (`node --test tests/*.test.js`) | the 5 `rubric.md` checks: OKR baseline · classification coverage · misalignment detected · ratified decision anchored · report reconciles to $284 ±$1 | 12 |
+| **plugin** | `npm run test:plugin` | plugin manifest + consent gate, bounded-agent refusal, `/try-liminal` deliberation, correction round-trip | 5 |
+| **provenance** | `npm run test:provenance` | hash determinism + golden vector, chain integrity + byte-flip tamper detection, INSERT-only immutability, reconcile ±$1, local-first no-network anchoring, contract drift-guard | 18 |
+
+All green = **35 checks**. The `provenance/` suite needs its deps installed + built first; `test-all.mjs`
+does that on first run (one-time network), then reuses `node_modules` + `dist`. The deterministic core
+regenerates `out/report.json` byte-identically on a re-run, so another team can re-verify "done"
+tomorrow on a fresh dataset in one command.
+
+> `engine/` ships its own suite (`npm --prefix engine test`) — deterministic `analyze`/`anchor` checks
+> plus a bounded `enforceCap` agent (its one live-Opus assertion auto-skips without `ANTHROPIC_API_KEY`).
+> It is built-today (see `CONTRIBUTIONS.md`) but not yet folded into the unified gate; add it to the
+> `SUITES` in `test-all.mjs` to include it.
+
+### CI
+`.github/workflows/ci.yml` runs the unified `npm test` on every push and pull request (Node 22), so the
+verification loop is rerunnable by anyone — the badge above reflects live status.
 
 ## Run the cockpit locally
 The operator cockpit (`app/`) is a Vite + React + TypeScript web app — no native toolchain required.
@@ -65,7 +134,7 @@ npm run typecheck  # tsc --noEmit (type-check only)
 See `app/README.md` for the screen map and the provenance data-seam.
 
 ## Deploy to a live URL (one command)
-The cockpit ships as a static SPA to **Vercel** (lane G). From the repo root:
+The cockpit ships as a static SPA to **Vercel**. From the repo root:
 
 ```bash
 ./deploy.sh              # verify a clean production build, then deploy app/ to PRODUCTION
@@ -73,23 +142,23 @@ The cockpit ships as a static SPA to **Vercel** (lane G). From the repo root:
 ./deploy.sh --build-only # just verify the production build, no deploy
 ```
 
-`deploy.sh` runs `cd app && npm install && npm run build`, then
-`npx vercel deploy --prod app/`. Vercel reads `app/vercel.json` for the build
-settings: `buildCommand` (`npm run build`), `outputDirectory` (`dist`), and the
-SPA `rewrites` that route every path back to `index.html` for client-side routing.
+`deploy.sh` runs `cd app && npm install && npm run build`, then `npx vercel deploy --prod app/`. Vercel
+reads `app/vercel.json` for the build settings: `buildCommand` (`npm run build`), `outputDirectory`
+(`dist`), and the SPA `rewrites` that route every path back to `index.html` for client-side routing.
 
-First run prompts you to log in / link the Vercel project. For non-interactive
-(CI) use, export a token first — `export VERCEL_TOKEN=...` — and `deploy.sh`
-passes it through automatically. No secrets are stored in the repo.
+First run prompts you to log in / link the Vercel project. For non-interactive (CI) use, export a token
+first — `export VERCEL_TOKEN=...` — and `deploy.sh` passes it through automatically. No secrets are
+stored in the repo. **Once deployed, paste the URL into the `LIVE_DEMO_URL` placeholder at the top of
+this README.**
 
 ## How it was built (orchestration)
 The product is built and verified by a **dynamic Claude Code workflow** (`.claude/workflows/`) running
 on Opus 4.8: bounded specialist agents deliberate, an adversarial reviewer refutes weak claims, and the
-workflow gates "done" against `rubric.md` + `tests/` — no human in the verification loop. See
-`coordination/DEMO.md` for the demo runbook and `rubric.md` for the done criteria.
+workflow gates "done" against `rubric.md` + the test suites — no human in the verification loop.
 
 ## Status
-Build-day build. See `coordination/INTEGRATION_HANDOFF.md` for live per-stream status.
+Build-day build. Submission readiness is tracked in `SUBMISSION_CHECKLIST.md`; per-stream contributions
+(built-today vs. prior art) are in `CONTRIBUTIONS.md`.
 
 ## License
 MIT — see `LICENSE`.

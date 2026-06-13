@@ -1,0 +1,31 @@
+name: CI
+
+# Re-verify the whole submission on every push + PR, so another team can rerun
+# "done" tomorrow in one command. This runs the unified gate: `npm test` →
+# test-all.mjs → root + plugin + provenance suites (rubric.md checks enforced in tests/).
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: unified npm test (root · plugin · provenance)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # No root dependencies to install — test-all.mjs is built on Node built-ins and
+      # installs the provenance package's deps itself on first run.
+      - name: Run unified test suite
+        run: npm test
