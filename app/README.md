@@ -31,10 +31,10 @@ Hero lives at `/`; the 6 cockpit screens live inside the shell (left nav).
 | `/`            | Hero / landing               | placeholder copy (lane C drops visuals) |
 | `/spend`       | Spend overview               | **real fixture** — per-vendor cost, reconciled monthly total |
 | `/utilization` | Seat vs. activity            | **real fixture** — purchased vs. active-30d, recomputed utilization |
-| `/findings`    | Findings (**HERO BEAT**)     | **real fixture** — each finding cites its source rows, shows its anchor receipt, has a Correct button, wired through the provenance seam |
+| `/findings`    | Findings (**HERO BEAT**)     | **LIVE** — each finding cites its source rows, shows its SHA-256 anchor receipt, a chain-integrity verify badge, and a Correct button that appends a real linked correction and live-re-renders the trail |
 | `/agents`      | Agent registry               | stub (static rows; trustless-agents UI plugs in later) |
 | `/governance`  | Ratified-cap / governance    | stub cap + **real** chain verification via the seam |
-| `/decisions`   | Decision log                 | **real** findings + in-session corrections from the seam |
+| `/decisions`   | Decision log                 | **real** findings + persisted corrections from the chain |
 
 ## The provenance data-seam (the durable part)
 
@@ -49,19 +49,62 @@ Wire types live in `src/lib/contract.ts`, copied/adapted from the canonical
 `AnchorReceipt` / `Correction` / `SpendLineItem` / `SeatActivity` /
 `SavingsFinding`). Keep them in sync; coordinate before changing a type.
 
-Today the seam is backed by `src/lib/fixtures.ts`, which loads the seeded CSVs
-from `public/data/*.csv` (copied from repo-root `data/`), reconciles spend ⋈
+Findings are derived from `src/lib/fixtures.ts`, which loads the seeded CSVs from
+`public/data/*.csv` (copied from repo-root `data/`), reconciles spend ⋈
 seat-activity, and derives `SavingsFinding`s whose `monthly_savings` reconciles
-to the report total.
+to the report total. Those findings are wrapped as contract `Packet`s and fed
+into the browser-native provenance chain below.
 
-### Phase-3 swap (one place)
+## Browser-native provenance chain (`src/lib/chain.ts`)
 
-The real provenance library lands on branch `build-day/s1-provenance` under
-`../provenance/`. To wire it in, replace the **FIXTURE BACKEND** section of
-`src/lib/provenance.ts` (`loadFindingPackets`, `mockAnchor`, the `submitCorrection`
-body, `verifyChain`) with calls into `provenance/` — it already returns
-`Packet` / `AnchorReceipt` / `Correction`. The four exported seam functions keep
-their signatures, so **no component changes**.
+The provenance + correction loop runs **LIVE in the browser**. The canonical
+provenance library (`../provenance/`) is Node-only — it links against
+`better-sqlite3`, a native addon that **cannot run in a browser**. So `chain.ts`
+is a browser-native re-implementation that mirrors that library's hash scheme
+**EXACTLY**:
+
+- `stableStringify` — sorted object keys at every level, arrays preserved in order.
+- `canonicalPacketPayload` — schema-tagged (`liminal.provenance.v1`),
+  anchor-fields-excluded, ordinal-sorted reads, optionals resolved to explicit `null`.
+- SHA-256 over that canonical string → lowercase hex.
+
+The **only** substantive difference from `provenance/src/hash.ts` is the digest
+primitive: the canonical lib uses `node:crypto` `createHash("sha256")`; the
+browser uses **WebCrypto** `crypto.subtle.digest("SHA-256", …)`. Both emit
+identical bytes — so a packet hashed here produces the **same 64-char hex** as
+`provenance/`'s `computePacketHash` would for the same packet. (Proven by a
+golden-vector parity check: `node:crypto` and WebCrypto digests of the canonical
+string of every derived finding packet match exactly.)
+
+On top of the hash, `chain.ts` mirrors `provenance/src/log.ts` + `correct.ts`:
+
+- an **append-only, hash-linked** event log (in-memory + `localStorage`-persisted
+  instead of SQLite); each entry carries `packet_hash` + `prev_hash`.
+- `anchorLocal` **receipts** (`anchor_chain: "local"`, `anchor_network:
+  "local-first"`) — the on-chain Algorand path is server-side/env-gated and
+  intentionally absent in the browser.
+- **corrections as new linked entries that re-anchor**, never mutations
+  (mirrors `correct()` — the correction carries `source_packet_id` +
+  `user_correction` and links onto the chain tail).
+- `verifyChain()` — re-hashes every stored payload (self-consistency) **and**
+  checks every `prev_hash` against the prior entry's `packet_hash`. A single
+  flipped byte breaks verification at that row.
+
+The findings screen renders finding → cited source rows → SHA-256 anchor receipt
+→ Correct. Clicking **Correct** appends a correction to the chain (persisted to
+`localStorage`), and the correction trail + the chain-integrity verify badge
+re-render live — the badge stays green because the new entry re-anchors cleanly.
+
+### Phase-3 note — convergence with `provenance/`
+
+Because `chain.ts` reproduces the canonical hash scheme byte-for-byte, the
+browser chain and the Node `provenance/` library are **hash-consistent**: the
+same packet yields the same id on both surfaces. Phase-3 swaps the in-browser
+`localStorage` store for a thin server seam in front of `provenance/` (real
+SQLite log + best-effort on-chain Algorand anchors) **without changing any
+hashes or component code** — the four exported seam functions
+(`listProvenance` / `loadProvenance` / `submitCorrection` / `verifyChain`) keep
+their signatures, and the receipts/corrections already match `contract.ts`.
 
 ## Where design (lane C) plugs in
 

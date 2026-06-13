@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../components/Page";
 import { pct, shortHash, usd } from "../lib/format";
 import type { CorrectionKind } from "../lib/contract";
@@ -7,6 +7,7 @@ import {
   type ProvenanceView,
   listProvenance,
   submitCorrection,
+  verifyChain,
 } from "../lib/provenance";
 
 const CORRECTION_KINDS: readonly CorrectionKind[] = [
@@ -16,16 +17,26 @@ const CORRECTION_KINDS: readonly CorrectionKind[] = [
   "emergence",
 ];
 
+type ChainState = Awaited<ReturnType<typeof verifyChain>>;
+
 // ─── THE HERO BEAT ───
 // Each finding: cites its source rows → shows its anchor receipt → Correct button.
-// All data flows through src/lib/provenance.ts (the seam). Phase-3 swaps the
-// fixture backend for the real provenance/ lib without touching this component.
+// Clicking Correct appends a new linked entry to the browser-native provenance
+// chain (src/lib/chain.ts), persists it, and live-re-renders the correction trail
+// + the chain-integrity verify badge. All data flows through src/lib/provenance.ts.
 export function Findings() {
   const [views, setViews] = useState<ProvenanceView[] | null>(null);
+  const [chain, setChain] = useState<ChainState | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [v, c] = await Promise.all([listProvenance(), verifyChain()]);
+    setViews(v);
+    setChain(c);
+  }, []);
 
   useEffect(() => {
-    listProvenance().then(setViews);
-  }, []);
+    void refresh();
+  }, [refresh]);
 
   if (!views) return <p>Loading findings…</p>;
 
@@ -37,16 +48,38 @@ export function Findings() {
         title="Findings"
         sub={`${views.length} underutilized vendors · ${usd(total)}/mo reclaimable. Each finding cites its evidence and carries an anchor receipt.`}
       />
+
+      {/* ── Chain-integrity verify badge (browser-native provenance chain) ── */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="receipt mono">
+          <span>
+            chain integrity:{" "}
+            <span className={`badge ${chain?.ok ? "good" : "warn"}`}>
+              {chain ? (chain.ok ? "verified" : "broken") : "…"}
+            </span>{" "}
+            {chain
+              ? `${chain.links.length} linked entr${chain.links.length === 1 ? "y" : "ies"} · SHA-256 hash-linked (mirrors provenance/ scheme)`
+              : "verifying…"}
+          </span>
+        </div>
+      </div>
+
       <div className="grid" style={{ gap: 16 }}>
         {views.map((v) => (
-          <FindingCard key={v.finding.id} view={v} />
+          <FindingCard key={v.finding.id} view={v} onCorrected={refresh} />
         ))}
       </div>
     </>
   );
 }
 
-function FindingCard({ view }: { view: ProvenanceView }) {
+function FindingCard({
+  view,
+  onCorrected,
+}: {
+  view: ProvenanceView;
+  onCorrected: () => Promise<void>;
+}) {
   const [correcting, setCorrecting] = useState(false);
   const [kind, setKind] = useState<CorrectionKind>("outer");
   const [reason, setReason] = useState("");
@@ -62,8 +95,9 @@ function FindingCard({ view }: { view: ProvenanceView }) {
       reason: reason.trim(),
     };
     try {
-      await submitCorrection(draft); // seam → Phase-3 wires provenance/
-      setDone("Correction appended as a new linked entry (see Decision log).");
+      const { correction } = await submitCorrection(draft); // → appends + re-anchors
+      await onCorrected(); // live re-render: trail + chain verify badge
+      setDone(`Correction ${shortHash(correction.id)} appended as a new linked entry & re-anchored.`);
       setCorrecting(false);
       setReason("");
     } finally {
@@ -128,6 +162,27 @@ function FindingCard({ view }: { view: ProvenanceView }) {
           {view.verification_message}
         </span>
       </div>
+
+      {/* ── Correction trail (new linked entries; never mutations) ── */}
+      {view.corrections.length > 0 && (
+        <div className="correction-trail">
+          <div className="mono" style={{ marginBottom: 4 }}>
+            correction trail · {view.corrections.length} linked entr
+            {view.corrections.length === 1 ? "y" : "ies"}
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {view.corrections.map((c) => (
+              <li key={c.id}>
+                <span className="badge warn">{c.correction_kind}</span>{" "}
+                {c.reason}{" "}
+                <span className="mono" style={{ color: "var(--muted)" }}>
+                  · {c.created_at.slice(0, 19).replace("T", " ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ── Correct button (appends a linked entry; never mutates) ── */}
       {!correcting ? (
