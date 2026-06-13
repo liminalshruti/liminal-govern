@@ -16,7 +16,7 @@
 | 7 | **CONTRIBUTIONS (built-today vs prior art)** | ✅ done | `CONTRIBUTIONS.md` — pre-empts the DQ question; covers `provenance/`, `plugin/`, `engine/`, `app/`, `.claude/workflows/`, `data/`. |
 | 8 | **`npm test` green (the unified gate)** | ✅ done (CI) / ⏳ confirm locally | Root + plugin verified green locally (17 checks, zero-dep); provenance (18) + engine (16) run in CI where the registry is reachable. Green = all 4 suites pass via `npm test` = **51 checks** (50 pass + 1 engine live-Opus check that skips without `ANTHROPIC_API_KEY`). See the CI badge in the README. |
 | 9 | **CI re-verifies on every push/PR** | ✅ done | `.github/workflows/ci.yml` runs `npm test` on push + PR — another team can rerun "done" tomorrow. |
-| 10 | **Live URL responds** | ⏳ pending | Deploy the cockpit (`./deploy.sh`) → paste the URL into the README `LIVE_DEMO_URL` placeholder and confirm it loads. Owned by the deploy/app lane. |
+| 10 | **Live URL responds** | ✅ done | **https://liminal-govern-cockpit.vercel.app** (200) — auto-deploys from `main` (Vercel root dir `app/`); serves the canonical cockpit ($4,500 Opus spend · $284 verified · E14 dropped via PR-103). |
 
 ## How to clear the pending items
 - **(1) Public:** GitHub → repo → Settings → Danger Zone → Change visibility → Public.
