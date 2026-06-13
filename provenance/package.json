@@ -1,0 +1,27 @@
+{
+  "name": "@liminal-govern/provenance",
+  "version": "0.1.0",
+  "description": "Local-first provenance chain: canonical packet hashing, append-only hash-linked SQLite log, local/on-chain anchor receipts, and corrections-as-new-entries. Clean-room, MIT.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "provenance": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "cli": "node --import tsx src/cli.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
