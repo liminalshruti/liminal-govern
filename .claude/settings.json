@@ -1,0 +1,15 @@
+{
+  "$comment": "W3 done-gate — a Stop hook that makes 'done' model-verifiable with no human in the loop. On every turn-end it runs the unified 4-suite gate (.claude/workflows/done-gate.mjs → `npm test`) and blocks the stop, quoting the failing assertion, until all 4 suites are green. Documented in ORCHESTRATION.md.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/workflows/done-gate.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
