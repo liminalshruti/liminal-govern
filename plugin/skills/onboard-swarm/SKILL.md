@@ -1,63 +1,67 @@
 ---
 name: onboard-swarm
-description: The parallel per-agent context scan that beats cold-start. After install, each bounded agent scans its canonical context stream (git/claude-code → Analyst, granola/calendar → SDR, cross-stream → Auditor) in parallel and reports the candidate streams it can pull from — before any deliberation. Run this to show the vault won't start empty.
+description: The parallel per-agent swarm that beats cold-start. After install, each bounded agent reads its canonical source (git/claude-code → Analyst, granola → SDR, cross-stream → Auditor) in parallel and posts a candidate — the one fact, commitment, or risk worth acting on — before any deliberation. Read-only, LLM-optional. Run this to show the vault won't start empty.
 disable-model-invocation: true
 allowed-tools: Bash(node *)
 ---
 
 # /onboard-swarm — beat cold-start
 
-The first thing Liminal does after install is not ask you for a brief. It scans. Each bounded agent reads its canonical context stream in parallel and reports what it can pull from, so the vault starts with real signal instead of a blank table.
+The first thing Liminal does after install is not ask you for a brief. It reads. Each bounded agent reads its canonical source in parallel and posts a candidate — the one fact, commitment, or risk worth acting on — so the first deliberation starts warm instead of from a blank table.
 
-This is the lightweight scan: it surfaces candidate streams (read-only, no LLM calls, no ingest). The daemon does the actual ingest; this beat just proves the swarm isn't cold.
+This is the full deliberation bootstrap. It is read-only (it reads sources and posts candidates in memory; it does not write the vault or mutate any source — the daemon does the real ingest) and LLM-optional (each agent deliberates live on Opus when a credential is present; otherwise it falls back to a labeled fixture so the beat always renders).
 
 ## Flow
 
-### 1. Run the swarm scan
+### 1. Run the swarm
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/skills/onboard-swarm/run.js
 ```
 
 The runner returns JSON:
-- `summary` — `{ streams_total, streams_live, cold_start }`. `cold_start: true` means no source has signal yet.
-- `streams` — each `{ source, agent_owner, status, detail, count }`. `status` is `scanning` (a candidate stream is present and ready to ingest) or `pending` (the source isn't here yet).
+- `mode` — `live` if the agents read on Opus, `fixture` if no Anthropic credential was available (say so honestly), `cold` if no source has signal.
+- `summary` — `{ streams_total, streams_live, candidates_total, cold_start }`.
+- `candidates` — each `{ source, agent_owner, status, interpretation, refused, mode }`. The owning agent reads its own source, so candidates are in-lane work, not refusals.
+
+For the lightweight "what's here?" probe (no agent reads, no LLM), pass `--scan` — it returns `{ summary, streams }` where each stream is `{ source, agent_owner, status, detail, count }`.
 
 ### 2. Render the swarm
 
-Group the streams by `agent_owner`, in bounded order (Analyst, SDR, Auditor). Lead each line with the agent, then the source, then the detail. Mark live streams plainly; show pending ones too — the geometry is honest about what's coming.
+Group candidates by `agent_owner`, in bounded order (Analyst, SDR, Auditor). Lead each block with the agent and the source it read, then its candidate.
 
 ```
 ANALYST (facts: what was built, what changed)
-  git           scanning   12 commits in last 30d at liminal-govern
-  claude-code   scanning   4 recent Claude Code session files
+  from git          [the candidate fact]
+  from claude-code  [the candidate fact]
 
 SDR (commitments: who, when, the next move)
-  granola       pending    Granola not installed
-  calendar      pending    calendar adapter not yet wired (next)
+  from granola      [the candidate commitment]
 
 AUDITOR (risks: gaps and drift across the streams)
-  cross-stream  scanning   2 streams to cross-check for gaps and drift
+  from cross-stream [the candidate risk — reads the other agents' candidates]
 ```
+
+If `mode` is `fixture`, add one plain line: "(candidates shown from a bundled sample — set ANTHROPIC_API_KEY or run `claude setup-token` to run this live on Opus.)"
 
 ### 3. Print the close line
 
-If `cold_start` is false, end with:
+If candidates were posted, end with:
 
-> The swarm found live streams — the vault won't start empty. Install the desktop app to let the daemon ingest these on a loop and deliberate over them.
+> The swarm read your streams and posted candidates — the first deliberation won't start cold. Install the desktop app to let the daemon ingest these on a loop and deliberate over them.
 
-If `cold_start` is true (no source has signal — common in a fresh CI checkout), say so honestly:
+If `mode` is `cold` (no source has signal — common in a fresh CI checkout), say so honestly:
 
-> No live streams here yet. On a real machine the swarm pulls git, Claude Code history, and meeting notes in parallel; here there's nothing to scan. Run /try-liminal to see the loop on a sample brief.
+> No live streams here yet. On a real machine the swarm reads git, Claude Code history, and meeting notes in parallel; here there's nothing to read. Run /try-liminal to see the loop on a sample brief.
 
 ## Voice rules
 
-- Lead with the agent that owns each stream — the geometry is the point.
-- Show pending streams; don't hide what isn't wired yet (calendar is "next").
+- Lead with the agent that owns each stream — the bounded geometry is the point.
+- Candidates are in-lane work; the refusal beat lives in /try-liminal, not here.
 - No emoji, no exclamation marks.
 
 ## What this skill is not
 
-- Not ingest — it detects candidate streams; the Liminal desktop daemon ingests them.
-- Not an LLM call — the scan is cheap filesystem/git probes, so three agents scanning in parallel cost nothing at the model.
-- The full parallel agent-per-stream *deliberation* bootstrap is the "next" beat; this shipped version proves the swarm geometry end to end.
+- Not ingest — it posts candidates in memory; the daemon (`bin/liminal-substrated.js`) persists ingested signal.
+- Not a vault write — read-only by design, so a first run never touches the real vault.
+- Calendar has no adapter yet (the remaining "next" in `docs/specs/2026-06-13-swarm-onboarding.md`), so it never posts a candidate.

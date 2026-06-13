@@ -1,24 +1,35 @@
 #!/usr/bin/env node
 /**
- * /onboard-swarm — the parallel per-agent context scan that beats cold-start.
+ * /onboard-swarm — the parallel per-agent swarm that beats cold-start.
  *
- * Runs the lightweight onboarding swarm (lib/onboard/swarm.js): each bounded
- * agent scans its canonical context stream in parallel and reports the candidate
- * streams it can pull from, before any deliberation. No LLM calls, no vault
- * writes — just "what's here, and which agent owns it."
+ * Two modes:
+ *   (default) full deliberation bootstrap — each bounded agent READS its
+ *     canonical source and POSTS A CANDIDATE (the one fact / commitment / risk
+ *     worth acting on), in parallel under Promise.allSettled. Read-only,
+ *     LLM-optional (labeled fixture fallback when no Anthropic credential).
+ *   --scan  lightweight candidate-stream scan only (no agent reads) — the
+ *     "what's here?" probe.
  *
- * Output: JSON { summary, streams } where each stream is
- *   { source, agent_owner, status, detail, count }.
+ * Output (default): JSON { mode, summary, candidates } where each candidate is
+ *   { source, agent_owner, status, interpretation, refused, mode }.
+ * Output (--scan):  JSON { summary, streams }.
  */
 
-import { scanStreams } from "../../lib/onboard/swarm.js";
+import { scanStreams, bootstrapSwarm } from "../../lib/onboard/swarm.js";
 
 async function main() {
-  const result = await scanStreams();
+  const args = process.argv.slice(2);
+  if (args.includes("--scan")) {
+    console.log(JSON.stringify(await scanStreams(), null, 2));
+    return;
+  }
+  const result = await bootstrapSwarm({
+    forceFixture: args.includes("--fixture"),
+  });
   console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((err) => {
-  console.error("ERROR in /onboard-swarm scan:", err.message);
+  console.error("ERROR in /onboard-swarm:", err.message);
   process.exit(1);
 });
