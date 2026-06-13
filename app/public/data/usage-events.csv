@@ -1,0 +1,22 @@
+event_id,date,employee,model,task_category,task_label,est_cost_usd
+E01,2026-06-02,Arjun,claude-opus-4-8,product_dev,Build payments API,420
+E02,2026-06-03,Bianca,claude-opus-4-8,product_dev,Feature: onboarding flow,380
+E03,2026-06-03,Chen,claude-opus-4-8,product_dev,Refactor checkout service,360
+E04,2026-06-04,Diego,claude-opus-4-8,product_dev,Feature: search v2,400
+E05,2026-06-05,Elif,claude-opus-4-8,product_dev,Build notifications service,360
+E06,2026-06-06,Arjun,claude-opus-4-8,product_dev,Feature: dashboard widgets,300
+E07,2026-06-09,Bianca,claude-opus-4-8,product_dev,Product bugfix sprint,300
+E08,2026-06-02,Farid,claude-opus-4-8,security_hardening,Threat-model auth service,300
+E09,2026-06-04,Chen,claude-opus-4-8,security_hardening,Dependency CVE audit,240
+E10,2026-06-05,Farid,claude-opus-4-8,security_hardening,Harden API rate limits,300
+E11,2026-06-08,Diego,claude-opus-4-8,security_hardening,Secrets-rotation runbook,240
+E12,2026-06-03,Elif,claude-opus-4-8,calendar_admin,Schedule team offsite + calendar wrangling,90
+E13,2026-06-06,Bianca,claude-opus-4-8,calendar_admin,Reformat meeting notes + send calendar invites,90
+E14,2026-06-04,Priya,claude-opus-4-8,calendar_admin,calendar-sync feature: Google Calendar API integration + UI,180
+E15,2026-06-05,Arjun,claude-opus-4-8,summarization,Summarize 40-page vendor PDF,75
+E16,2026-06-09,Diego,claude-opus-4-8,summarization,Summarize Slack threads into weekly digest,60
+E17,2026-06-06,Chen,claude-opus-4-8,unclassified,Misc exploration / prompt iteration,135
+E18,2026-06-07,Elif,claude-opus-4-8,unclassified,Untagged session,135
+E19,2026-06-10,Farid,claude-opus-4-8,unclassified,Scratch debugging,135
+E20,2026-06-03,Bianca,claude-haiku-4-5,summarization,Standup digest,8
+E21,2026-06-05,Diego,claude-haiku-4-5,product_dev,Format release notes,6

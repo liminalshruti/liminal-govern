@@ -77,6 +77,12 @@ if (!engOk) {
 }
 results.push(['engine      (engine/tests/)', engOk]);
 
+// 5) app coherence suite — zero-dep (node:test reads app/public/data/report.json). Fails CLOSED if the
+//    cockpit ever drifts off the canonical AI-spend story ($284 / E14 dropped / CalendarOps / policy).
+process.stdout.write('\n─── app coherence suite ───\n');
+results.push(['app         (app/tests/)',
+  spawnSync(process.execPath, ['--test', 'app/tests/coherence.test.mjs'], { stdio: 'inherit', cwd: root }).status === 0]);
+
 // summary
 process.stdout.write('\n═══ unified test summary ═══\n');
 let failed = 0;

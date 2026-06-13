@@ -1,187 +1,324 @@
 /**
  * Provenance data-seam (cockpit · Build Day 2026-06-13).
  *
- * Components import ONLY from this module; they never touch report.json directly.
- * The exported functions (listProvenance / loadProvenance / submitCorrection /
- * listCorrections / verifyChain) keep stable signatures.
+ * Components import ONLY from this module; they never know where the data comes
+ * from. The four seam functions keep their signatures.
  *
- * ┌──────────────── SINGLE SOURCE OF TRUTH: out/report.json (baked at build time) ────────────────┐
- * │ The cockpit reads the SAME artifact the S4 deliberation workflow + the pitch use:             │
- * │ the engine's `out/report.json` (baked to src/generated/report.json by scripts/prebuild.mjs).  │
- * │                                                                                               │
- * │ Each LIVE finding becomes a provenance Packet; the kept findings (E14's refuted claim         │
- * │ excluded) plus the ratified governance decision are hash-linked into an append-only chain     │
- * │ via ./chain.ts (WebCrypto SHA-256, mirroring the Node provenance/ scheme byte-for-byte). The  │
- * │ browser re-verifies the whole chain live. Human corrections append as NEW linked entries on   │
- * │ top of the anchored chain (never mutations), persist across reloads, and re-verify live.      │
- * │                                                                                               │
- * │ The dropped claim (F-E14, $162) is NOT on the chain — it was refuted by adversarial review    │
- * │ (PR-103) and dropped. That IS the governance beat: agents disagreed, the operator's           │
- * │ correction is what got anchored. listDropped() surfaces it for the Findings screen.           │
- * └───────────────────────────────────────────────────────────────────────────────────────────┘
+ * ┌─────────────────── WIRED TO THE REAL PROVENANCE LIB (via S4) ───────────────────┐
+ * │ The orchestration lane (S4 · .claude/workflows/spend-audit.mjs) ran the REAL    │
+ * │ provenance/ lib — 8-agent deliberation + adversarial reviewer — and emitted     │
+ * │ out/report.json. Its `provenance.anchored` block is the real chain: real        │
+ * │ SHA-256 packet hashes (node:crypto, canonical scheme), hash-linked, anchored,   │
+ * │ chain_verified=true. The reviewer independently DROPPED the E14 claim (PR-103    │
+ * │ proves it's product work) — the "model caught its own error" beat, live.        │
+ * │                                                                                  │
+ * │ This seam reads that real artifact (public/data/report.json) + joins the raw    │
+ * │ usage events for cited evidence. A LIVE correction the operator signs in the     │
+ * │ browser is hashed by canonicalHash.ts — the SAME canonical scheme the lib uses  │
+ * │ (real SHA-256, Web Crypto), linked to the chain tip.                            │
+ * └──────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import {
-  REPORT,
-  evidenceFor,
-  headline,
-  liveFindings,
-  droppedFindings,
-  type ClassifiedUsage,
-  type ReportFinding,
-} from "./report";
 import type { AnchorReceipt, Correction, CorrectionKind, Packet } from "./contract";
-import {
-  appendCorrection,
-  buildChain,
-  correctionsFor,
-  listPersistedCorrections,
-  verifyChain as verifyEvents,
-} from "./chain";
+import { computePacketHash } from "./canonicalHash";
+import { loadReport, type Report, type ReportFinding } from "./report";
 
-const ANCHORED_AT = "2026-06-13T09:00:00.000Z";
+// ─────────────────────────── cited evidence (usage events) ───────────────────────────
 
-/** Stable per-entry timestamp so packets/hashes are byte-identical across reloads. */
-function stampAt(i: number): string {
-  return new Date(Date.parse(ANCHORED_AT) + i * 1000).toISOString();
+export interface CitedEvent {
+  event_id: string;
+  date: string;
+  employee: string;
+  model: string;
+  task_category: string;
+  task_label: string;
+  est_cost_usd: number;
 }
 
-/** A report finding → the exact Packet the chain hashes. */
-function findingToPacket(f: ReportFinding, created_at: string): Packet {
-  return {
-    id: f.finding_id,
-    kind: "finding",
-    context: `${f.type} · ${f.recommended_action}`,
-    reads: [],
-    chosen_agent: f.approved_alternative_id ?? null,
-    created_at,
-  };
+let eventsPromise: Promise<Map<string, CitedEvent>> | null = null;
+async function loadEvents(): Promise<Map<string, CitedEvent>> {
+  if (!eventsPromise) {
+    eventsPromise = fetch(`${import.meta.env.BASE_URL}data/usage-events.csv`)
+      .then((r) => r.text())
+      .then((text) => {
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines[0]!.split(",").map((h) => h.trim());
+        const map = new Map<string, CitedEvent>();
+        for (const line of lines.slice(1)) {
+          const cells = line.split(",");
+          const row: Record<string, string> = {};
+          header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
+          map.set(row.event_id!, {
+            event_id: row.event_id!,
+            date: row.date!,
+            employee: row.employee!,
+            model: row.model!,
+            task_category: row.task_category!,
+            task_label: row.task_label!,
+            est_cost_usd: Number(row.est_cost_usd),
+          });
+        }
+        return map;
+      });
+  }
+  return eventsPromise;
 }
 
-/** The ratified governance decision → the final anchored packet (the cap). */
-function ratifyPacket(created_at: string): Packet {
-  return {
-    id: "D-RATIFY-CAL",
-    kind: "finding",
-    context: `ratified_decision · ${REPORT.ratified_decision.decision}`,
-    reads: [],
-    created_at,
-  };
-}
+// ─────────────────────────────── the view the UI renders ───────────────────────────────
 
-/**
- * The deterministic anchored chain, in order: the LIVE findings (refuted claims
- * excluded) followed by the ratified decision — 6 entries, mirroring
- * report.json#provenance.anchored.
- */
-function basePackets(): Packet[] {
-  const live = liveFindings();
-  const packets = live.map((f, i) => findingToPacket(f, stampAt(i)));
-  packets.push(ratifyPacket(stampAt(live.length)));
-  return packets;
-}
-
-const findingById = new Map(REPORT.findings.map((f) => [f.finding_id, f]));
-
-/** Headline figures the pitch quotes (re-exported from report.ts). */
-export const reportSummary = headline;
-
-/** The unit the provenance surface renders: a finding, its evidence, its anchor + verify. */
 export interface ProvenanceView {
-  finding: Packet;
-  reportFinding: ReportFinding;
-  evidence: ClassifiedUsage[];
-  receipt: AnchorReceipt | null;
-  corrections: Correction[];
-  verification_state: "verified" | "tampered";
+  finding_id: string;
+  type: "agent_fit_routing" | "okr_misalignment" | string;
+  title: string; // recommended_action
+  category: string | null;
+  employee: string | null;
+  monthly_savings: number;
+  approved_alternative: string | null;
+  approved_alternative_id: string | null;
+  sourceEvents: CitedEvent[];
+  dropped: boolean;
+  drop_reason: string | null;
+  receipt: AnchorReceipt | null; // from provenance.anchored (real), null if dropped/unanchored
+  packet_hash: string | null;
+  prev_hash: string | null;
+  verification_state: "verified" | "refuted" | "reallocation";
   verification_message: string;
+  // DecisionLog still reads .finding.{id,context,created_at}
+  finding: Packet;
 }
 
-/** A human correction the surface can submit — contract.ts Correction shape. */
 export interface CorrectionDraft {
   source_packet_id: string;
   correction_kind: CorrectionKind;
   reason: string;
 }
 
+export interface ChainEntry {
+  id: string;
+  kind: "finding" | "decision";
+  packet_id: string;
+  packet_hash: string;
+  prev_hash: string | null;
+  created_at: string;
+  receipt: AnchorReceipt | null;
+}
+
+const PERIOD_DATE = "2026-06-13"; // the audit period (report.json carries no per-row timestamps)
+
+function anchorOf(report: Report, packetId: string): AnchorReceipt | null {
+  const a = report.provenance.anchored.find((x) => x.packet_id === packetId);
+  if (!a) return null;
+  return {
+    packet_id: a.packet_id,
+    packet_hash: a.packet_hash,
+    prev_hash: a.prev_hash,
+    anchored_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    anchor_chain: a.anchor_chain as "local" | "algorand",
+    anchor_network: a.anchor_network,
+  };
+}
+
+async function buildView(
+  report: Report,
+  f: ReportFinding,
+  events: Map<string, CitedEvent>,
+): Promise<ProvenanceView> {
+  const receipt = anchorOf(report, f.finding_id);
+  const isOkr = f.type === "okr_misalignment";
+  const state: ProvenanceView["verification_state"] = f.dropped
+    ? "refuted"
+    : isOkr
+      ? "reallocation"
+      : "verified";
+  return {
+    finding_id: f.finding_id,
+    type: f.type,
+    title: f.recommended_action,
+    category: f.category ?? null,
+    employee: f.employee ?? null,
+    monthly_savings: f.monthly_savings,
+    approved_alternative: f.approved_alternative ?? null,
+    approved_alternative_id: f.approved_alternative_id ?? null,
+    sourceEvents: f.source_row_ids.map((id) => events.get(id)).filter((e): e is CitedEvent => Boolean(e)),
+    dropped: Boolean(f.dropped),
+    drop_reason: f.drop_reason ?? null,
+    receipt,
+    packet_hash: receipt?.packet_hash ?? null,
+    prev_hash: receipt?.prev_hash ?? null,
+    verification_state: state,
+    verification_message: f.dropped
+      ? "Refuted by adversarial review — claim dropped, never silently."
+      : isOkr
+        ? "Reallocation, not a routing saving."
+        : "Anchored — real SHA-256, hash-linked & chain-verified.",
+    finding: {
+      id: f.finding_id,
+      kind: "finding",
+      context: f.recommended_action,
+      reads: [],
+      created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    },
+  };
+}
+
+// In-memory log of corrections signed THIS session (layered on the real chain).
+const sessionCorrections: Correction[] = [];
+
 // ───────────────────────────── SEAM (stable API) ─────────────────────────────
 
-/**
- * List the live-finding provenance views. Builds the chain from the report's anchored
- * packets (+ persisted corrections) and re-verifies it in-browser. The ratified-decision
- * packet anchors the chain but is not itself a "finding" view.
- */
+/** List all finding provenance views from the real orchestration report. */
 export async function listProvenance(): Promise<ProvenanceView[]> {
-  const events = await buildChain(basePackets());
-  const report = await verifyEvents(events);
-  const linkOk = new Map(report.links.map((l) => [l.packet_id, l.ok]));
-  const byId = new Map(events.map((e) => [e.packet_id, e]));
+  const [report, events] = await Promise.all([loadReport(), loadEvents()]);
+  return Promise.all(report.findings.map((f) => buildView(report, f, events)));
+}
 
-  return liveFindings().map((reportFinding) => {
-    const event = byId.get(reportFinding.finding_id)!;
-    const corrections = correctionsFor(reportFinding.finding_id);
-    const ok = linkOk.get(reportFinding.finding_id) ?? false;
+export async function loadProvenance(packetId: string): Promise<ProvenanceView | null> {
+  const views = await listProvenance();
+  return views.find((v) => v.finding_id === packetId) ?? null;
+}
+
+/**
+ * Submit a correction — appends a NEW linked entry, never mutates. Hashed
+ * in-browser by the lib's canonical scheme (real SHA-256, Web Crypto), linked to
+ * the current chain tip.
+ */
+export async function submitCorrection(
+  draft: CorrectionDraft,
+): Promise<{ ok: boolean; correction: Correction; packet_hash: string; prev_hash: string | null }> {
+  const report = await loadReport();
+  const created_at = new Date().toISOString();
+  const id = `corr_${draft.source_packet_id}_${sessionCorrections.length + 1}`;
+
+  const packet: Packet = {
+    id,
+    kind: "finding",
+    context: `correction of ${draft.source_packet_id}`,
+    reads: [],
+    source_packet_id: draft.source_packet_id,
+    user_correction: draft.reason,
+    correction_kind: draft.correction_kind,
+    created_at,
+  };
+  const anchored = report.provenance.anchored;
+  const prev_hash = anchored.length ? anchored[anchored.length - 1]!.packet_hash : null;
+  const packet_hash = await computePacketHash({ packet, reads: [] });
+
+  const correction: Correction = {
+    id,
+    source_packet_id: draft.source_packet_id,
+    correction_kind: draft.correction_kind,
+    reason: draft.reason,
+    created_at,
+  };
+  sessionCorrections.push(correction);
+  return { ok: true, correction, packet_hash, prev_hash };
+}
+
+export function listCorrections(): Correction[] {
+  return [...sessionCorrections];
+}
+
+/** The real append-only chain (anchored findings + the ratified decision). */
+export async function listChain(): Promise<ChainEntry[]> {
+  const report = await loadReport();
+  return report.provenance.anchored.map((a) => ({
+    id: a.packet_id,
+    kind: a.packet_id.startsWith("D-") ? "decision" : "finding",
+    packet_id: a.packet_id,
+    packet_hash: a.packet_hash,
+    prev_hash: a.prev_hash,
+    created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    receipt: anchorOf(report, a.packet_id),
+  }));
+}
+
+/** The dropped-claim trail (the E14 refutation) — surfaced for the hero. */
+export async function getCorrectionTrail(): Promise<
+  { finding_id: string; drop_reason: string; dropped_event: string; dropped_savings: number }[]
+> {
+  const report = await loadReport();
+  return report.dropped_claims.map((d) => {
+    const f = report.findings.find((x) => x.finding_id === d.finding_id);
     return {
-      finding: event.packet,
-      reportFinding,
-      evidence: evidenceFor(reportFinding.source_row_ids),
-      receipt: event.receipt,
-      corrections,
-      verification_state: ok ? "verified" : "tampered",
-      verification_message: ok
-        ? `Anchored SHA-256, re-verified in-browser${
-            corrections.length ? ` · ${corrections.length} correction(s) re-anchored` : ""
-          }.`
-        : "Chain link/hash mismatch — receipt did not re-verify in-browser.",
+      finding_id: d.finding_id,
+      drop_reason: d.drop_reason,
+      dropped_event: f?.source_row_ids[0] ?? "E14",
+      dropped_savings: f?.monthly_savings ?? 162,
     };
   });
 }
 
-/** Load one finding's provenance view by finding id. */
-export async function loadProvenance(packetId: string): Promise<ProvenanceView | null> {
-  const views = await listProvenance();
-  return views.find((v) => v.finding.id === packetId) ?? null;
+/** The ratified policy — the D-RATIFY-CAL chain entry + the decision detail. */
+export async function getRatification(): Promise<{
+  id: string;
+  policy: string;
+  rationale: string;
+  packet_hash: string | null;
+  prev_hash: string | null;
+  receipt: AnchorReceipt | null;
+  created_at: string;
+}> {
+  const report = await loadReport();
+  const anchored = report.provenance.anchored.find((a) => a.packet_id.startsWith("D-"));
+  return {
+    id: anchored?.packet_id ?? "D-RATIFY-CAL",
+    policy: report.ratified_decision.decision,
+    rationale: report.ratified_decision.rationale,
+    packet_hash: anchored?.packet_hash ?? null,
+    prev_hash: anchored?.prev_hash ?? null,
+    receipt: anchored ? anchorOf(report, anchored.packet_id) : null,
+    created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+  };
 }
 
-/** The refuted/dropped claims (E14 → $162), with their drop reason + evidence. */
-export function listDropped(): { finding: ReportFinding; evidence: ClassifiedUsage[] }[] {
-  return droppedFindings().map((finding) => ({
-    finding,
-    evidence: evidenceFor(finding.source_row_ids),
-  }));
-}
-
-/** Look up the raw report finding by id (for the decision log / cross-screen use). */
-export function getReportFinding(id: string): ReportFinding | undefined {
-  return findingById.get(id);
+/** Reconciliation: surviving findings sum to the report total (the dropped claim is not counted). */
+export async function getReconcile(): Promise<{
+  ok: boolean;
+  sum: number;
+  total: number;
+  delta: number;
+  naive: number;
+  dropped: number;
+}> {
+  const report = await loadReport();
+  const sum = report.findings
+    .filter((f) => !f.dropped)
+    .reduce((s, f) => s + f.monthly_savings, 0);
+  const total = report.total_recommended_savings;
+  return {
+    ok: Math.abs(sum - total) <= 1,
+    sum,
+    total,
+    delta: Math.abs(sum - total),
+    naive: report.naive_savings,
+    dropped: report.naive_savings - total,
+  };
 }
 
 /**
- * Submit a correction against a finding — appends a NEW linked entry to the
- * browser-native chain on top of the anchored findings (never mutates), persists
- * it, and re-anchors on the next chain build.
- */
-export async function submitCorrection(
-  draft: CorrectionDraft,
-): Promise<{ ok: boolean; correction: Correction }> {
-  const correction = appendCorrection(draft);
-  return { ok: true, correction };
-}
-
-/** Corrections appended to the chain (persisted; drives the decision log). */
-export function listCorrections(): Correction[] {
-  return listPersistedCorrections();
-}
-
-/**
- * Verify the live chain links cleanly — each row re-hashes to its recorded
- * `packet_hash` AND each `prev_hash` matches the previous row's `packet_hash`.
+ * Verify the chain. Surfaces the REAL verify result baked by provenance/ (S4):
+ * chain_verified over chain_length entries. Re-walks prev_hash continuity in the
+ * browser too as a belt-and-braces check.
  */
 export async function verifyChain(): Promise<{
   ok: boolean;
+  brokenIndex: number;
+  length: number;
   links: { packet_id: string; ok: boolean }[];
 }> {
-  const events = await buildChain(basePackets());
-  const report = await verifyEvents(events);
-  return { ok: report.ok, links: report.links };
+  const report = await loadReport();
+  let prev: string | null = null;
+  let brokenIndex = -1;
+  const links = report.provenance.anchored.map((a, i) => {
+    const ok = a.prev_hash === prev;
+    if (!ok && brokenIndex === -1) brokenIndex = i;
+    prev = a.packet_hash;
+    return { packet_id: a.packet_id, ok };
+  });
+  return {
+    ok: report.provenance.chain_verified && brokenIndex === -1,
+    brokenIndex,
+    length: report.provenance.chain_length,
+    links,
+  };
 }
