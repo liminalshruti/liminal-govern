@@ -39,6 +39,14 @@ function Shell() {
             {n.label}
           </NavLink>
         ))}
+        <div className="spacer" />
+        <div className="foot">
+          Provenance wired to the real{" "}
+          <a href="https://github.com" onClick={(e) => e.preventDefault()}>
+            provenance/
+          </a>{" "}
+          lib — real SHA-256 anchors, hash-linked chain.
+        </div>
       </nav>
       <main className="main">
         <Routes>

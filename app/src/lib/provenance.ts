@@ -1,208 +1,324 @@
 /**
  * Provenance data-seam (cockpit · Build Day 2026-06-13).
  *
- * Adapted from liminal-desktop/src/lib/provenance.ts (S3) — same seam shape,
- * but the Tauri IPC backend is replaced by a WEB/FIXTURE backend so this
- * deploys to Vercel (lane G). Components import ONLY from this module; they
- * never know where the data comes from.
+ * Components import ONLY from this module; they never know where the data comes
+ * from. The four seam functions keep their signatures.
  *
- * ┌─────────────────────────── PHASE-3 SWAP POINT ───────────────────────────┐
- * │ Today: findings are derived from the seeded CSV fixtures (./fixtures.ts), │
- * │ wrapped as contract `Packet`s, and given deterministic local-first        │
- * │ `AnchorReceipt`s by mockAnchor().                                          │
- * │                                                                            │
- * │ Phase-3: the real provenance/ lib lands on build-day/s1-provenance. To     │
- * │ wire it in, replace the FIXTURE BACKEND section below (loadFindingPackets, │
- * │ mockAnchor, submitCorrection, verifyChain) with calls into provenance/ —   │
- * │ it already returns Packet / AnchorReceipt / Correction (contract.ts). The  │
- * │ four exported functions keep their signatures; NO component changes.       │
- * └────────────────────────────────────────────────────────────────────────┘
- *
- * CONTRACT ALIGNMENT (src/lib/contract.ts, mirrored from coordination/contract.ts):
- *   - ProvenanceView.finding  ↔ Packet (kind === "finding")
- *   - ProvenanceView.receipt  ↔ AnchorReceipt
- *   - submitCorrection payload ↔ Correction
+ * ┌─────────────────── WIRED TO THE REAL PROVENANCE LIB (via S4) ───────────────────┐
+ * │ The orchestration lane (S4 · .claude/workflows/spend-audit.mjs) ran the REAL    │
+ * │ provenance/ lib — 8-agent deliberation + adversarial reviewer — and emitted     │
+ * │ out/report.json. Its `provenance.anchored` block is the real chain: real        │
+ * │ SHA-256 packet hashes (node:crypto, canonical scheme), hash-linked, anchored,   │
+ * │ chain_verified=true. The reviewer independently DROPPED the E14 claim (PR-103    │
+ * │ proves it's product work) — the "model caught its own error" beat, live.        │
+ * │                                                                                  │
+ * │ This seam reads that real artifact (public/data/report.json) + joins the raw    │
+ * │ usage events for cited evidence. A LIVE correction the operator signs in the     │
+ * │ browser is hashed by canonicalHash.ts — the SAME canonical scheme the lib uses  │
+ * │ (real SHA-256, Web Crypto), linked to the chain tip.                            │
+ * └──────────────────────────────────────────────────────────────────────────────────┘
  */
 
-import type {
-  AnchorReceipt,
-  Correction,
-  CorrectionKind,
-  Packet,
-  SavingsFinding,
-} from "./contract";
-import {
-  deriveFindings,
-  loadSeatActivity,
-  loadSpend,
-  reconcileUtilization,
-  type UtilizationRow,
-} from "./fixtures";
+import type { AnchorReceipt, Correction, CorrectionKind, Packet } from "./contract";
+import { computePacketHash } from "./canonicalHash";
+import { loadReport, type Report, type ReportFinding } from "./report";
 
-/** The unit the provenance surface renders: a finding, its receipt, its verify state. */
-export interface ProvenanceView {
-  finding: Packet; // kind === "finding"
-  savings: SavingsFinding; // the structured spend finding behind the packet
-  sourceRows: UtilizationRow[]; // the cited evidence rows (resolved)
-  receipt: AnchorReceipt | null;
-  verification_state: "verified" | "unverified" | "tampered";
-  verification_message: string;
+// ─────────────────────────── cited evidence (usage events) ───────────────────────────
+
+export interface CitedEvent {
+  event_id: string;
+  date: string;
+  employee: string;
+  model: string;
+  task_category: string;
+  task_label: string;
+  est_cost_usd: number;
 }
 
-/** A human correction the surface can submit — contract.ts Correction shape. */
+let eventsPromise: Promise<Map<string, CitedEvent>> | null = null;
+async function loadEvents(): Promise<Map<string, CitedEvent>> {
+  if (!eventsPromise) {
+    eventsPromise = fetch(`${import.meta.env.BASE_URL}data/usage-events.csv`)
+      .then((r) => r.text())
+      .then((text) => {
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines[0]!.split(",").map((h) => h.trim());
+        const map = new Map<string, CitedEvent>();
+        for (const line of lines.slice(1)) {
+          const cells = line.split(",");
+          const row: Record<string, string> = {};
+          header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
+          map.set(row.event_id!, {
+            event_id: row.event_id!,
+            date: row.date!,
+            employee: row.employee!,
+            model: row.model!,
+            task_category: row.task_category!,
+            task_label: row.task_label!,
+            est_cost_usd: Number(row.est_cost_usd),
+          });
+        }
+        return map;
+      });
+  }
+  return eventsPromise;
+}
+
+// ─────────────────────────────── the view the UI renders ───────────────────────────────
+
+export interface ProvenanceView {
+  finding_id: string;
+  type: "agent_fit_routing" | "okr_misalignment" | string;
+  title: string; // recommended_action
+  category: string | null;
+  employee: string | null;
+  monthly_savings: number;
+  approved_alternative: string | null;
+  approved_alternative_id: string | null;
+  sourceEvents: CitedEvent[];
+  dropped: boolean;
+  drop_reason: string | null;
+  receipt: AnchorReceipt | null; // from provenance.anchored (real), null if dropped/unanchored
+  packet_hash: string | null;
+  prev_hash: string | null;
+  verification_state: "verified" | "refuted" | "reallocation";
+  verification_message: string;
+  // DecisionLog still reads .finding.{id,context,created_at}
+  finding: Packet;
+}
+
 export interface CorrectionDraft {
   source_packet_id: string;
   correction_kind: CorrectionKind;
   reason: string;
 }
 
-// ───────────────────────── FIXTURE BACKEND (Phase-3 swap) ─────────────────────────
-
-const ANCHORED_AT = "2026-06-13T09:00:00.000Z";
-
-/** Tiny synchronous string hash → hex, stable per input. Stand-in for SHA-256. */
-function pseudoHash(input: string): string {
-  let h1 = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h1 ^= input.charCodeAt(i);
-    h1 = Math.imul(h1, 0x01000193);
-  }
-  const hex = (h1 >>> 0).toString(16).padStart(8, "0");
-  // Pad to a 64-char SHA-256-shaped hex string so the UI reads realistically.
-  return (hex.repeat(8)).slice(0, 64);
+export interface ChainEntry {
+  id: string;
+  kind: "finding" | "decision";
+  packet_id: string;
+  packet_hash: string;
+  prev_hash: string | null;
+  created_at: string;
+  receipt: AnchorReceipt | null;
 }
 
-/** Build a deterministic local-first anchor receipt, hash-linked to prev. */
-function mockAnchor(packet: Packet, prevHash: string | null): AnchorReceipt {
-  const payload = `${packet.id}|${packet.context}|${packet.created_at}`;
+const PERIOD_DATE = "2026-06-13"; // the audit period (report.json carries no per-row timestamps)
+
+function anchorOf(report: Report, packetId: string): AnchorReceipt | null {
+  const a = report.provenance.anchored.find((x) => x.packet_id === packetId);
+  if (!a) return null;
   return {
-    packet_id: packet.id,
-    packet_hash: pseudoHash(payload),
-    prev_hash: prevHash,
-    anchored_at: ANCHORED_AT,
-    anchor_chain: "local",
-    anchor_network: "local-first",
-    // anchor_txn_id omitted: local-first, not yet on-chain. Phase-3 / Algorand sets it.
+    packet_id: a.packet_id,
+    packet_hash: a.packet_hash,
+    prev_hash: a.prev_hash,
+    anchored_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    anchor_chain: a.anchor_chain as "local" | "algorand",
+    anchor_network: a.anchor_network,
   };
 }
 
-/** Wrap a SavingsFinding as a contract `Packet` (kind: "finding"). */
-function findingToPacket(f: SavingsFinding): Packet {
+async function buildView(
+  report: Report,
+  f: ReportFinding,
+  events: Map<string, CitedEvent>,
+): Promise<ProvenanceView> {
+  const receipt = anchorOf(report, f.finding_id);
+  const isOkr = f.type === "okr_misalignment";
+  const state: ProvenanceView["verification_state"] = f.dropped
+    ? "refuted"
+    : isOkr
+      ? "reallocation"
+      : "verified";
   return {
-    id: f.finding_id,
-    kind: "finding",
-    context: `${f.vendor} utilization ${f.utilization_pct}% — ${f.recommended_action}`,
-    reads: [
-      {
-        agent_name: "Auditor",
-        archetype: "diligence",
-        quoted: `${f.vendor} shows ${f.utilization_pct}% seat utilization over 30d.`,
-        situation: `Reconciled from rows ${f.source_row_ids.join(", ")}.`,
-        hidden_risk: "Seat sprawl: paying for inactive seats compounds monthly.",
-        next_move: f.recommended_action,
-        ordinal: 0,
-      },
-    ],
-    created_at: ANCHORED_AT,
+    finding_id: f.finding_id,
+    type: f.type,
+    title: f.recommended_action,
+    category: f.category ?? null,
+    employee: f.employee ?? null,
+    monthly_savings: f.monthly_savings,
+    approved_alternative: f.approved_alternative ?? null,
+    approved_alternative_id: f.approved_alternative_id ?? null,
+    sourceEvents: f.source_row_ids.map((id) => events.get(id)).filter((e): e is CitedEvent => Boolean(e)),
+    dropped: Boolean(f.dropped),
+    drop_reason: f.drop_reason ?? null,
+    receipt,
+    packet_hash: receipt?.packet_hash ?? null,
+    prev_hash: receipt?.prev_hash ?? null,
+    verification_state: state,
+    verification_message: f.dropped
+      ? "Refuted by adversarial review — claim dropped, never silently."
+      : isOkr
+        ? "Reallocation, not a routing saving."
+        : "Anchored — real SHA-256, hash-linked & chain-verified.",
+    finding: {
+      id: f.finding_id,
+      kind: "finding",
+      context: f.recommended_action,
+      reads: [],
+      created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    },
   };
 }
 
-/** Load all finding packets + cited source rows from the fixtures. */
-async function loadFindingPackets(): Promise<
-  { view: SavingsFinding; rows: UtilizationRow[] }[]
-> {
-  const [spend, activity] = await Promise.all([loadSpend(), loadSeatActivity()]);
-  const reconciled = reconcileUtilization(spend, activity);
-  const byRow = new Map(reconciled.map((r) => [r.row_id, r]));
-  const findings = deriveFindings(reconciled);
-  return findings.map((view) => ({
-    view,
-    rows: view.source_row_ids
-      .map((id) => byRow.get(id))
-      .filter((r): r is UtilizationRow => Boolean(r)),
-  }));
-}
-
-// In-memory correction log. Phase-3: provenance/ appends a real linked entry.
-const correctionLog: Correction[] = [];
+// In-memory log of corrections signed THIS session (layered on the real chain).
+const sessionCorrections: Correction[] = [];
 
 // ───────────────────────────── SEAM (stable API) ─────────────────────────────
 
-/** List all finding provenance views, hash-linked into a chain. */
+/** List all finding provenance views from the real orchestration report. */
 export async function listProvenance(): Promise<ProvenanceView[]> {
-  const findings = await loadFindingPackets();
-  let prevHash: string | null = null;
-  const views: ProvenanceView[] = [];
-  for (const { view, rows } of findings) {
-    const packet = findingToPacket(view);
-    const receipt = mockAnchor(packet, prevHash);
-    prevHash = receipt.packet_hash;
-    views.push({
-      finding: packet,
-      savings: view,
-      sourceRows: rows,
-      receipt,
-      verification_state: "verified",
-      verification_message: "Local-first — hash present and chain-linked.",
-    });
-  }
-  return views;
+  const [report, events] = await Promise.all([loadReport(), loadEvents()]);
+  return Promise.all(report.findings.map((f) => buildView(report, f, events)));
 }
 
-/** Load one finding's provenance view by packet/finding id. */
-export async function loadProvenance(
-  packetId: string,
-): Promise<ProvenanceView | null> {
+export async function loadProvenance(packetId: string): Promise<ProvenanceView | null> {
   const views = await listProvenance();
-  return views.find((v) => v.finding.id === packetId) ?? null;
+  return views.find((v) => v.finding_id === packetId) ?? null;
 }
 
 /**
- * Submit a correction against a finding — appends a new linked entry, never
- * mutates (contract.ts Correction discipline).
- *
- * PHASE-3 SEAM: today this pushes to an in-memory log and echoes the entry.
- * The real path is provenance/ append-correction (or S1's API), which returns
- * the same Correction. Wire it here WITHOUT touching the Correct button.
+ * Submit a correction — appends a NEW linked entry, never mutates. Hashed
+ * in-browser by the lib's canonical scheme (real SHA-256, Web Crypto), linked to
+ * the current chain tip.
  */
 export async function submitCorrection(
   draft: CorrectionDraft,
-): Promise<{ ok: boolean; correction: Correction }> {
+): Promise<{ ok: boolean; correction: Correction; packet_hash: string; prev_hash: string | null }> {
+  const report = await loadReport();
+  const created_at = new Date().toISOString();
+  const id = `corr_${draft.source_packet_id}_${sessionCorrections.length + 1}`;
+
+  const packet: Packet = {
+    id,
+    kind: "finding",
+    context: `correction of ${draft.source_packet_id}`,
+    reads: [],
+    source_packet_id: draft.source_packet_id,
+    user_correction: draft.reason,
+    correction_kind: draft.correction_kind,
+    created_at,
+  };
+  const anchored = report.provenance.anchored;
+  const prev_hash = anchored.length ? anchored[anchored.length - 1]!.packet_hash : null;
+  const packet_hash = await computePacketHash({ packet, reads: [] });
+
   const correction: Correction = {
-    id: `C-${Date.now()}`,
+    id,
     source_packet_id: draft.source_packet_id,
     correction_kind: draft.correction_kind,
     reason: draft.reason,
-    created_at: new Date().toISOString(),
+    created_at,
   };
-  correctionLog.push(correction);
-  // eslint-disable-next-line no-console
-  console.info("[provenance seam] submitCorrection (fixture) — Phase-3 wires provenance/", correction);
-  return { ok: true, correction };
+  sessionCorrections.push(correction);
+  return { ok: true, correction, packet_hash, prev_hash };
 }
 
-/** Corrections appended this session (drives the decision log). */
 export function listCorrections(): Correction[] {
-  return [...correctionLog];
+  return [...sessionCorrections];
+}
+
+/** The real append-only chain (anchored findings + the ratified decision). */
+export async function listChain(): Promise<ChainEntry[]> {
+  const report = await loadReport();
+  return report.provenance.anchored.map((a) => ({
+    id: a.packet_id,
+    kind: a.packet_id.startsWith("D-") ? "decision" : "finding",
+    packet_id: a.packet_id,
+    packet_hash: a.packet_hash,
+    prev_hash: a.prev_hash,
+    created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+    receipt: anchorOf(report, a.packet_id),
+  }));
+}
+
+/** The dropped-claim trail (the E14 refutation) — surfaced for the hero. */
+export async function getCorrectionTrail(): Promise<
+  { finding_id: string; drop_reason: string; dropped_event: string; dropped_savings: number }[]
+> {
+  const report = await loadReport();
+  return report.dropped_claims.map((d) => {
+    const f = report.findings.find((x) => x.finding_id === d.finding_id);
+    return {
+      finding_id: d.finding_id,
+      drop_reason: d.drop_reason,
+      dropped_event: f?.source_row_ids[0] ?? "E14",
+      dropped_savings: f?.monthly_savings ?? 162,
+    };
+  });
+}
+
+/** The ratified policy — the D-RATIFY-CAL chain entry + the decision detail. */
+export async function getRatification(): Promise<{
+  id: string;
+  policy: string;
+  rationale: string;
+  packet_hash: string | null;
+  prev_hash: string | null;
+  receipt: AnchorReceipt | null;
+  created_at: string;
+}> {
+  const report = await loadReport();
+  const anchored = report.provenance.anchored.find((a) => a.packet_id.startsWith("D-"));
+  return {
+    id: anchored?.packet_id ?? "D-RATIFY-CAL",
+    policy: report.ratified_decision.decision,
+    rationale: report.ratified_decision.rationale,
+    packet_hash: anchored?.packet_hash ?? null,
+    prev_hash: anchored?.prev_hash ?? null,
+    receipt: anchored ? anchorOf(report, anchored.packet_id) : null,
+    created_at: `${PERIOD_DATE}T09:00:00.000Z`,
+  };
+}
+
+/** Reconciliation: surviving findings sum to the report total (the dropped claim is not counted). */
+export async function getReconcile(): Promise<{
+  ok: boolean;
+  sum: number;
+  total: number;
+  delta: number;
+  naive: number;
+  dropped: number;
+}> {
+  const report = await loadReport();
+  const sum = report.findings
+    .filter((f) => !f.dropped)
+    .reduce((s, f) => s + f.monthly_savings, 0);
+  const total = report.total_recommended_savings;
+  return {
+    ok: Math.abs(sum - total) <= 1,
+    sum,
+    total,
+    delta: Math.abs(sum - total),
+    naive: report.naive_savings,
+    dropped: report.naive_savings - total,
+  };
 }
 
 /**
- * Verify the finding chain links cleanly (each receipt.prev_hash matches the
- * previous receipt.packet_hash). Phase-3: provenance/ verifies real signatures
- * + on-chain anchors. Returns a per-link report.
+ * Verify the chain. Surfaces the REAL verify result baked by provenance/ (S4):
+ * chain_verified over chain_length entries. Re-walks prev_hash continuity in the
+ * browser too as a belt-and-braces check.
  */
 export async function verifyChain(): Promise<{
   ok: boolean;
+  brokenIndex: number;
+  length: number;
   links: { packet_id: string; ok: boolean }[];
 }> {
-  const views = await listProvenance();
-  let prevHash: string | null = null;
-  let ok = true;
-  const links = views.map((v) => {
-    const linkOk = v.receipt?.prev_hash === prevHash;
-    prevHash = v.receipt?.packet_hash ?? null;
-    if (!linkOk) ok = false;
-    return { packet_id: v.finding.id, ok: linkOk };
+  const report = await loadReport();
+  let prev: string | null = null;
+  let brokenIndex = -1;
+  const links = report.provenance.anchored.map((a, i) => {
+    const ok = a.prev_hash === prev;
+    if (!ok && brokenIndex === -1) brokenIndex = i;
+    prev = a.packet_hash;
+    return { packet_id: a.packet_id, ok };
   });
-  return { ok, links };
+  return {
+    ok: report.provenance.chain_verified && brokenIndex === -1,
+    brokenIndex,
+    length: report.provenance.chain_length,
+    links,
+  };
 }
