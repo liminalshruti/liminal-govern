@@ -71,39 +71,53 @@ const reads = await parallel(
 log(`${reads.filter(Boolean).length}/8 bounded agents reported`)
 
 // ── 3 · Adversarial review — refute weak claims (must drop the E14 trap) ──────────────────────────
+// W1 — this one call runs with EXTENDED THINKING so its refutation reasons harder before it drops a
+// claim (the marquee Opus-4.8 hero beat). The Anthropic API forbids forced `tool_choice` while
+// extended thinking is on — the exact incompatibility that keeps engine/enforce.ts's forced
+// `record_verdict` call thinking-OFF (see enforce.ts:9-10,78). A `schema:` here would force a
+// StructuredOutput tool and so DISABLE thinking; to keep the reviewer thinking-capable we drop the
+// forced schema, let it deliberate in the open, and parse the verdict it emits. This cannot move the
+// E14 drop: determinism is owned by the deterministic core (spend-audit.mjs) + the fail-closed gate,
+// not by this live read — the schema relaxation is confined to the narrated reviewer beat.
 phase('Adversarial review')
-const VERDICT_SCHEMA = {
-  type: 'object',
-  required: ['dropped', 'verdicts'],
-  properties: {
-    dropped: { type: 'array', items: { type: 'string' } }, // event ids dropped
-    verdicts: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['event_id', 'claim_survives', 'reason'],
-        properties: {
-          event_id: { type: 'string' },
-          claim_survives: { type: 'boolean' },
-          reason: { type: 'string' },
-        },
-      },
-    },
-  },
+
+// Parse the reviewer's verdict out of its free-text (thinking-enabled) reply: prefer the last fenced
+// ```json block, else the last bare {…} object. Returns null if no well-formed verdict is present.
+function parseVerdict(text) {
+  if (typeof text !== 'string') return null
+  const fenced = [...text.matchAll(/```json\s*([\s\S]*?)```/gi)].map((m) => m[1])
+  const bare = text.match(/\{[\s\S]*\}/)
+  for (const raw of [...fenced.reverse(), bare ? bare[0] : null]) {
+    if (!raw) continue
+    try {
+      const v = JSON.parse(raw.trim())
+      if (Array.isArray(v.dropped) && Array.isArray(v.verdicts)) return v
+    } catch { /* try the next candidate */ }
+  }
+  return null
 }
+
 const review = await agent(
-  `You are a fresh, skeptical Read-only adversarial reviewer (FinOps auditor). The Misuse/policy agent ` +
-  `flagged calendar_admin and summarization Opus-4.8 events as routable waste. REFUTE any claim that ` +
-  `does not survive the evidence. Cross-check each flagged event against data/pr-evidence.csv: if a ` +
-  `flagged event is backed by a PR on the "product" workstream, the work is real product engineering, ` +
-  `NOT admin — the routing/savings claim must be DROPPED. Pay special attention to E14 (labeled ` +
-  `calendar_admin but titled "calendar-sync feature"): check whether a product PR proves it is product ` +
-  `work. Return which event ids you drop and why. Default to dropping when the evidence is ambiguous.`,
-  { label: 'adversarial-reviewer', phase: 'Adversarial review', model: 'opus', schema: VERDICT_SCHEMA },
+  `You are a fresh, skeptical Read-only adversarial reviewer (FinOps auditor) running with EXTENDED ` +
+  `THINKING — reason hard, step by step, in the open before you rule. The Misuse/policy agent flagged ` +
+  `calendar_admin and summarization Opus-4.8 events as routable waste. REFUTE any claim that does not ` +
+  `survive the evidence. Cross-check each flagged event against data/pr-evidence.csv: if a flagged ` +
+  `event is backed by a PR on the "product" workstream, the work is real product engineering, NOT ` +
+  `admin — the routing/savings claim must be DROPPED. Pay special attention to E14 (labeled ` +
+  `calendar_admin but titled "calendar-sync feature"): check whether a product PR (PR-103) proves it ` +
+  `is product work. Default to dropping when the evidence is ambiguous.\n\n` +
+  `Think through every flagged event explicitly, THEN end your reply with one fenced JSON block (and ` +
+  `nothing after it) of exactly this shape:\n` +
+  '```json\n' +
+  `{"dropped":["E14"],"verdicts":[{"event_id":"E14","claim_survives":false,"reason":"PR-103 proves it is product work"}]}\n` +
+  '```',
+  // No `schema:` — forced tools are incompatible with extended thinking (see note above).
+  { label: 'adversarial-reviewer', phase: 'Adversarial review', model: 'opus' },
 )
-if (review) {
-  log(`adversarial review dropped: ${review.dropped.join(', ') || '(none)'}`)
-  const e14 = review.verdicts.find((v) => v.event_id === 'E14')
+const verdict = parseVerdict(review)
+if (verdict) {
+  log(`adversarial review dropped: ${verdict.dropped.join(', ') || '(none)'}`)
+  const e14 = verdict.verdicts.find((v) => v.event_id === 'E14')
   if (e14 && !e14.claim_survives) log(`✓ caught its own error: E14 dropped — ${e14.reason}`)
 }
 
@@ -132,7 +146,7 @@ return {
   fixture,
   intake,
   deliberation: reads.filter(Boolean).length,
-  adversarial: review,
+  adversarial: verdict,
   emit,
   verify,
 }

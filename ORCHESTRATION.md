@@ -19,7 +19,8 @@ Each agent was handed the same four-part contract, then left to run:
    so it re-runs on a new dataset in one command. A deterministic core (`spend-audit.mjs`) makes the
    gate byte-reproducible.
 4. **Tests/gate** (`tests/`, plus each package's own `npm test`) — the rubric, enforced. The workflow
-   emits "success" **only when all checks pass**. Green tests are the agent's stop condition.
+   emits "success" **only when all checks pass**. Green tests are the agent's stop condition — made
+   literal by a **Stop hook** (`done-gate.mjs`); see *The done-gate* below.
 
 The point: **"done" is machine-checkable, so an agent can verify its own work without a human.**
 
@@ -30,10 +31,11 @@ enforced by the gate:
 
 - A naïve misuse pass flags event **E14** ("calendar-sync") as **$162** of routable calendar-admin
   waste. Naïve recommended savings: **$446**.
-- The workflow then runs an **adversarial Read-only reviewer** that cross-checks every savings claim
-  against PR evidence. It finds **PR-103** ("calendar-sync feature — Google Calendar API + UI", by
-  Priya): E14 is *product engineering on the approved track*, not admin waste. The reviewer **refutes
-  and drops** the claim. Verified savings: **$284**.
+- The workflow then runs an **adversarial Read-only reviewer** — running with **extended thinking**, so
+  its refutation reasons harder before it drops a claim — that cross-checks every savings claim against
+  PR evidence. It finds **PR-103** ("calendar-sync feature — Google Calendar API + UI", by Priya): E14
+  is *product engineering on the approved track*, not admin waste. The reviewer **refutes and drops**
+  the claim. Verified savings: **$284**.
 - This is not a story we tell — it's a **test that fails closed**. `tests/reconcile.test.js` asserts
   both *"surviving findings reconcile to $284 ±$1"* **and** *"counting the dropped E14 claim breaks
   reconciliation (the trap must be excluded)."* If an agent ever re-counts the refuted claim, the gate
@@ -50,6 +52,29 @@ $ node .claude/workflows/spend-audit.mjs
   provenance chain: VERIFIED (6 entries) → out/report.provenance.db
   → out/report.json
 ```
+
+## The done-gate — "done" is a Stop hook, not a human
+
+The verification loop is closed in code by a **Stop hook** (`.claude/workflows/done-gate.mjs`, wired in
+`.claude/settings.json`). Every time the model tries to end its turn, the hook runs the unified 4-suite
+gate (`npm test` → `test-all.mjs`: root · plugin · provenance · engine) and **blocks "done" until all
+four suites are green**, quoting the failing assertion back to the model when they aren't. The only way
+to stop is a green gate. It's the same gate the workflow's Verify phase invokes and the same one a judge
+runs by hand — one source of truth for "done."
+
+```
+$ # red → the hook refuses to let the turn end, and says exactly why:
+Done-gate: the unified 4-suite gate (`npm test`) is NOT green — not done.
+Failing:
+  ✗ FAIL  root        (tests/)
+  1 of 4 suite(s) failed.
+Fix until `npm test` prints "All 4 suites green." (exit 0), then stop.
+```
+
+Because the E14-trap guard lives *inside* that gate (`tests/reconcile.test.js` — "surviving findings
+reconcile to $284 ±$1"), the done-gate also fails closed if the refuted $162 claim is ever re-counted:
+the model literally cannot declare itself done while its own error is back. **"Done" is machine-checked
+by the model, with no human in the loop** — the literal Orchestration ask.
 
 ## Built by parallel autonomous agents
 
@@ -125,9 +150,14 @@ claude plugin validate ./plugin --strict
 - **Orchestration** — a saved, rerunnable workflow that gates "done" against a written rubric + a test
   suite, built by parallel agents kept wire-compatible by a drift guard. Reproducible by the commands
   above.
-- **Opus-4.8 use** — `model: opus` for the 8 deliberation agents and the adversarial reviewer; a
-  **live** `claude-opus-4-8` bounded agent in `engine/enforceCap` that refuses over-cap and
-  surveillance decisions (verified by a live test).
+- **Opus-4.8 use** — `model: opus` for the 8 deliberation agents and the adversarial reviewer; the
+  reviewer additionally runs with **extended thinking** so its E14 refutation reasons harder. Extended
+  thinking is incompatible with a forced `tool_choice`, so the reviewer call drops its forced
+  StructuredOutput schema and parses the verdict instead — the inverse of `engine/enforce.ts`, whose
+  forced `record_verdict` call is deliberately **thinking-OFF** for the same reason. Determinism of the
+  E14 drop is unaffected: it's owned by the deterministic core (`spend-audit.mjs`) and the gate, not the
+  live read. Plus a **live** `claude-opus-4-8` bounded agent in `engine/enforceCap` that refuses
+  over-cap and surveillance decisions (verified by a live test).
 - **Self-verification** — the E14 trap: the model refutes its own naïve claim, and a test fails closed
   if the refutation is ever undone.
 
