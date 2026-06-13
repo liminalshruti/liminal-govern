@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "liminal-govern": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "cd \"${CLAUDE_PLUGIN_ROOT}/../mcp\" && { [ -x node_modules/.bin/tsx ] || npm install --silent; } && { [ -f ../provenance/dist/src/index.js ] || { cd ../provenance && npm install --silent && npm run build --silent && cd ../mcp; }; } && exec node_modules/.bin/tsx src/server.ts"
+      ]
+    }
+  }
+}

@@ -28,6 +28,7 @@
   ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
   "userConfig": {
     "anthropic_api_key": {
       "type": "string",

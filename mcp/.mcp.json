@@ -1,0 +1,9 @@
+{
+  "$comment": "Template MCP registration for the liminal-govern server (stdio). Copy this into your project's .mcp.json (or use `claude mcp add`, see README). Replace ABSOLUTE_PATH_TO with the absolute path to this repo. The plugin can ship it by pointing args at ${CLAUDE_PLUGIN_ROOT}/../mcp/src/server.ts.",
+  "mcpServers": {
+    "liminal-govern": {
+      "command": "node",
+      "args": ["--import", "tsx", "ABSOLUTE_PATH_TO/lg-mcp/mcp/src/server.ts"]
+    }
+  }
+}
