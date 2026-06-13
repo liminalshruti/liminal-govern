@@ -1,0 +1,14 @@
+{
+  "decisions": [
+    {
+      "id": "D-0001",
+      "date": "2026-05-28",
+      "decision": "Haiku 4.5 approved for standup digests and release-note formatting",
+      "rationale": "Low-stakes summarization; no need for frontier spend.",
+      "approved_by": "Operator",
+      "agent_policy": {
+        "haiku_allowed_for": ["standup_digest", "release_notes"]
+      }
+    }
+  ]
+}

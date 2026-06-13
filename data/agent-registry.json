@@ -1,0 +1,41 @@
+{
+  "agents": [
+    {
+      "id": "opus-4-8",
+      "name": "Claude Opus 4.8",
+      "type": "frontier_model",
+      "cost_tier": "high",
+      "approved_for": ["product_dev", "security_hardening", "architecture_review"],
+      "verified": true
+    },
+    {
+      "id": "calendarops",
+      "name": "CalendarOps Agent",
+      "type": "internal_agent",
+      "cost_tier": "low",
+      "cost_vs_opus": "~10%",
+      "approved_for": ["calendar_management", "scheduling"],
+      "verified": true,
+      "provenance": "registry-verified (Algorand trustless agent registry)",
+      "publisher": "internal-platform"
+    },
+    {
+      "id": "digestbot",
+      "name": "DigestBot",
+      "type": "internal_agent",
+      "model": "claude-haiku-4-5",
+      "cost_tier": "low",
+      "cost_vs_opus": "~5%",
+      "approved_for": ["summarization", "digests"],
+      "verified": true,
+      "provenance": "registry-verified"
+    },
+    {
+      "id": "analyst",
+      "name": "Analyst (bounded)",
+      "type": "internal_agent",
+      "approved_for": ["diligence", "analysis"],
+      "verified": true
+    }
+  ]
+}

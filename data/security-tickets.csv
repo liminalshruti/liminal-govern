@@ -1,0 +1,5 @@
+ticket_id,date,owner,title,severity,status
+SEC-21,2026-06-05,Farid,API rate limiting,P1,closed
+SEC-22,2026-06-08,Diego,Secrets rotation,P1,in_progress
+SEC-23,2026-06-04,Chen,CVE-2026-3xxx dependency patch,P0,closed
+SEC-24,2026-06-09,Farid,Auth session-fixation fix,P1,open
