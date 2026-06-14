@@ -44,6 +44,13 @@
   `ANTHROPIC_API_KEY`. Wired into the unified root `npm test` gate (runs after `provenance/`, whose
   built dist it imports).
 - **`data/`** — the synthetic AI-usage governance fixture.
+- **`mcp/`** — a stdio [MCP](https://modelcontextprotocol.io) server exposing the spend-governance
+  `engine/` + `provenance/` chain as Claude-session tools (run a spend audit, verify the chain, get a
+  finding, inspect corrections) — so **any** Claude session can govern spend without reimplementing
+  either. Additive: it wraps the existing packages and modifies neither. Written fresh today.
+- **`managed/`** — a **Managed Agent** that runs the spend-audit workflow on a schedule (server-side,
+  async): the "this scales" beat past the on-demand MCP tool. Ships a working `agent.json` + a verifiable
+  offline `--dry-run`; reuses `engine/` + `provenance/`, reimplements neither. Written fresh today.
 - The end-to-end integration tying these into the demo flow.
 
 ## Prior art (clearly distinguished — NOT claimed as today's work)

@@ -180,8 +180,9 @@ The workflow only emits "done" when the model-graded gate is green. Captured ver
 ℹ skipped 0
 ```
 
-**12 pass · 0 fail · 0 skip** — the five `rubric.md` checks hold. Green tests are the agent's stop
-condition.
+**12 pass · 0 fail · 0 skip** — the five `rubric.md` checks hold (this is the **S4 root rubric gate**,
+`node --test tests/*.test.js`; the repo-wide unified gate is **69 checks across 5 suites** — see the root
+`README.md`). Green tests are the agent's stop condition.
 
 ---
 

@@ -31,7 +31,7 @@ The AI-transformation / engineering leader with budget authority over advanced-m
 6. **Verifies** itself against `rubric.md` + `tests/` and only reports success when all five checks pass.
 
 ## What "done" means (model-verifiable — no human in the loop)
-`npm test` is green (**12 pass, 0 fail, 0 skip**) — the five `rubric.md` checks, enforced in `tests/`:
+`npm test` is green (**12 pass, 0 fail, 0 skip** — this is the **S4 root rubric gate** (`node --test tests/*.test.js`); the full repo runs a unified **5-suite gate of 69 checks**, see the root `README.md`) — the five `rubric.md` checks, enforced in `tests/`:
 1. OKR baseline exists. 2. Every usage event classified to an OKR. 3. Misalignment detected (security
 **24% vs 40%** target). 4. A ratified decision (with `agent_policy` + approved alternative) anchored to
 the provenance trail. 5. The report cites its sources and the savings **reconcile to $284 ±$1 with the

@@ -3,10 +3,16 @@
 The governance cockpit for **AI spend governance for founder/operators**. Web app
 (Vite + React + TypeScript) so lane G can deploy it to Vercel. No Tauri.
 
-This is a **buildable, deployable skeleton, not a throwaway**: app shell + routing,
-the 6 cockpit screens (stubbed, rendering real fixture data where trivial), a hero
-landing screen, and — the durable part — the **provenance data-seam** wired to the
-canonical contract + seeded fixtures.
+> **Current state (build-day final).** The cockpit is **complete and live** at
+> <https://liminal-govern-cockpit.vercel.app> — the converged-IA Agency shell, the dark
+> "electric-data" theme, the Findings hero beat, ratification, and the trustless-agents
+> surface, all live-wired to the **real provenance chain**. The sections below this one are
+> **historical mid-build scaffold notes**, kept as a record of how it was assembled; where they
+> say "skeleton", "stub", or "plugs in later", read them as the *starting point*, not the shipped
+> state. For current truth, see the root [`README.md`](../README.md) and the live URL.
+
+It grew from a deployable skeleton — app shell + routing, the cockpit screens, and the durable
+**provenance data-seam** wired to the canonical contract + seeded fixtures — into the live cockpit above.
 
 ## Run
 

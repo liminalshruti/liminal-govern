@@ -50,14 +50,16 @@ node plugin/skills/try-liminal/run.js
 
 | Env var | Default | Purpose |
 | --- | --- | --- |
-| **`LIMINAL_COCKPIT_URL`** | `https://liminal-govern.vercel.app` *(placeholder — must be set to the live Vercel URL once the govern cockpit is deployed)* | The web-cockpit install lane the SessionStart hook offers. Set this to the live deployed cockpit so the install wedge opens the **demo-coherent govern cockpit** (not the old liminal-space `/pilot` page, which is a different product). Set to `""` or `none` to disable the web lane entirely. |
+| **`LIMINAL_COCKPIT_URL`** | `https://liminal-govern-cockpit.vercel.app` *(the live cockpit — this is the built-in default `DEFAULT_COCKPIT_URL` in `bin/liminal-plugin-onboard.js`; no need to set it)* | The web-cockpit install lane the SessionStart hook offers. Defaults to the live, demo-coherent govern cockpit (not the old liminal-space `/pilot` page, which is a different product). Override only to point at a different deployment; set to `""` or `none` to disable the web lane entirely. |
 | `LIMINAL_DMG_PATH` | unset | Point the installer at a specific desktop DMG (otherwise it scans the desktop build's bundle dir). |
 | `LIMINAL_ONBOARD_DRY_RUN` | unset | `1` skips the macOS `open` (used by tests/CI). |
 | `LIMINAL_GIT_REPO` / `LIMINAL_GRANOLA_PATH` | working dir / default cache | Point `/onboard-swarm` source probes at specific locations. |
 
-> **Deploy note:** the `LIMINAL_COCKPIT_URL` default is a clearly-marked
-> placeholder. Once the govern cockpit is live on Vercel, set this env var to the
-> real URL so onboarding opens the correct, demo-coherent cockpit.
+> **Deploy note:** the govern cockpit is **live** at
+> `https://liminal-govern-cockpit.vercel.app`, and that is the built-in default
+> (`DEFAULT_COCKPIT_URL` in `bin/liminal-plugin-onboard.js`) — onboarding opens the
+> correct, demo-coherent cockpit with **no env var set**. Override `LIMINAL_COCKPIT_URL`
+> only to point at a different deployment.
 
 ## Provenance
 
