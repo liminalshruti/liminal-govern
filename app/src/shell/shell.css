@@ -270,3 +270,6 @@ body { padding: 0; }
 .snode .st{font:8px/1 var(--mono);color:var(--text-mute);margin-left:auto}
 .snode .sbody{font:12.5px/1.4 var(--display);color:var(--text-mid)}
 .snode .smeta{margin-top:5px;font:8px/1 var(--mono);color:var(--text-faint)}
+/* the climax: the live correction write, sealed into the chain */
+.amend-row.amended{background:var(--connection-bg);border:1px solid rgba(49,230,130,.3);border-radius:6px;padding:10px 12px;transition:background .3s ease,border-color .3s ease}
+.lbl.amended{color:var(--connection)}.lbl.amended b{color:var(--connection)}

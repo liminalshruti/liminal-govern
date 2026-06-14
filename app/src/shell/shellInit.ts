@@ -61,7 +61,7 @@ const SURFACES = {
           <div class="dreason"><span class="x">✗</span><span class="t"><b>Refuted.</b> PR-103 (Priya, “calendar-sync feature: Google Calendar API + UI”) proves E14 is product engineering, not admin. The $162 claim is dropped.</span></div>
           <div class="rtot"><span class="l">Total recommended</span><span class="v"><span class="was">$446</span>$284</span></div>
         </div>
-        <div class="amend-row"><span class="lbl">The read is the model’s until you change it — correction is the primary act.</span><button class="btn-amend" data-amend="finding">✎ Amend this read</button></div>
+        <div class="amend-row"><span class="lbl"><b>The correction is the primary act.</b> The read is the model’s until you change it — and your change is written <b>live</b>, hash-linked into the append-only chain.</span><button class="btn-amend" data-amend="finding">✎ Amend this read — write it live</button></div>
       </div></div>`},
   agentfit:{eyebrow:'beat 6 · agent fit',title:'Route to a registry-verified agent',agency:'rail',body:()=>`
     <p class="lede">A verifiable internal agent registry — current vs suggested, with on-chain provenance.</p>
@@ -225,12 +225,15 @@ document.addEventListener('click',e=>{
   if(e.target.id==='palette'){togglePal(false);return;}
   const pr=e.target.closest('[data-goto]');if(pr){go(pr.dataset.goto);togglePal(false);return;}
   const am=e.target.closest('[data-amend]');
-  if(am){ am.disabled=true; const orig=am.textContent; am.textContent='signing…';
+  if(am){ am.disabled=true; am.textContent='signing…';
     const fallback=['12:07','operator correction · re-anchored',0];
+    // the climax: surface the REAL new-entry hash and open the ledger so the write is seen landing in the chain
+    const seal=ent=>{const sha=(ent&&ent[3])?ent[3]:'—';const r=am.closest('.amend-row');
+      if(r){r.classList.add('amended');r.innerHTML=`<span class="lbl amended">✓ <b>Correction written live to the append-only chain.</b> New entry · sha ${sha} · hash-linked &amp; immutable — corrections never overwrite. The correction is the record.</span>`;}
+      openLedger();};
     Promise.resolve((typeof window!=='undefined' && window.__govCorrect) ? window.__govCorrect() : fallback)
-      .then(entry=>{CHAIN.push(entry||fallback);renderChain(99);
-        am.textContent='✓ correction appended — your read now'; am.style.opacity=.65; am.style.cursor='default';})
-      .catch(()=>{CHAIN.push(fallback);renderChain(99);am.textContent=orig;am.disabled=false;});}
+      .then(ent=>{const e2=ent||fallback;CHAIN.push(e2);renderChain(99);seal(e2);})
+      .catch(()=>{CHAIN.push(fallback);renderChain(99);seal(fallback);});}
 });
 // EXTENDED · keyboard — ⌘K palette · number keys 1–9/0 jump to a surface · Esc/Enter in palette
 document.getElementById('pal-input').addEventListener('input',ev=>renderPal(ev.target.value));
