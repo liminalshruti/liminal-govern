@@ -71,7 +71,12 @@ const SURFACES = {
         <div class="arr">→</div>
         <div class="side sug"><span class="ro">suggested</span><p class="ag">CalendarOps Agent</p><span class="co">~10% of Opus · scoped: calendar</span><span class="bd">registry-verified</span></div>
       </div></div>`},
-  ratify:{eyebrow:'beat 7 · ratify',title:'One policy proves the product',agency:'summary',prov:'rail',body:()=>`
+  ratify:{eyebrow:'beat 7 · ratify',title:'One policy proves the product',agency:'summary',prov:'rail',body:()=>{
+    // real anchored hash of the ratified decision (D-RATIFY-CAL), pulled from the loaded chain;
+    // honest fallback is the real hash itself (never a placeholder).
+    const dec=CHAIN.find(e=>e[1].toLowerCase().includes('ratified'));
+    const sha=(dec&&dec[3])?dec[3]:'5d9fad4245…d8a5';
+    return `
     <p class="lede">Spend governance + routing + the registry + provenance + non-surveillance — in a single signed, anchored object.</p>
     <div class="cta"><button class="btn-r" onclick="document.getElementById('art').style.display='block';this.style.display='none'">Ratify decision ▸</button></div>
     <div id="art" style="display:none"><div class="artifact">
@@ -80,8 +85,8 @@ const SURFACES = {
         <p class="adec">Opus 4.8 cannot be used for calendar management or routine admin work.</p>
         <p class="arat">Calendar/admin usage does not map to the approved OKRs, and a registry-verified lower-cost agent (CalendarOps, ~10% of Opus cost) covers it. The calendar-sync work in E14 is product engineering (PR-103) and is explicitly NOT reclassified.</p>
         <div class="apol"><span class="pc al">allow · product_dev</span><span class="pc al">allow · security_hardening</span><span class="pc al">allow · architecture_review</span><span class="pc dn">deny · calendar_management</span><span class="pc dn">deny · routine_admin</span><span class="pc dn">deny · generic_summarization</span></div>
-        <div class="arec"><span class="hl">anchored</span><span class="hs">sha256: 7d4b…a284 · local-first chain · entry 6/6</span><span class="ok">chain verified</span></div>
-      </div></div></div>`},
+        <div class="arec"><span class="hl">anchored</span><span class="hs">sha256: ${sha} · local-first chain · entry 6/6</span><span class="ok">chain verified</span></div>
+      </div></div></div>`;}},
   brief:{eyebrow:'beat 8 · brief',title:'AI Spend Brief — exec-ready',agency:'summary',body:()=>`
     <p class="lede">The decision trail as proof: spend by OKR, the routing change, the savings, the ratified policy.</p>
     <div class="tiles" style="margin-top:6px">
@@ -153,8 +158,8 @@ function renderLedger(){
   if(led.classList.contains('spine')){ // Direction A · the Spine (vertical hash-linked timeline; corrections indent)
     document.getElementById('lbody').innerHTML = `<div class="spine-wrap">` + CHAIN.map((e,i)=>{
       const k=ledgerKind(e),lab=LSEAL[k][0];
-      const sha = e[3] || `${(0x7d4b+i*131).toString(16).slice(0,4)}…`;
-      const prev = i>0 ? ` ← ${CHAIN[i-1][3] || ((0x7d4b+(i-1)*131).toString(16).slice(0,4)+'…')}` : '';
+      const sha = e[3] || '—';
+      const prev = (i>0 && CHAIN[i-1][3]) ? ` ← ${CHAIN[i-1][3]}` : '';
       return `<div class="snode ${k}"><div class="srow"><span class="spill">${lab}</span><span class="st">${e[0]}</span></div><div class="sbody">${e[1]}</div><div class="smeta">sha ${sha}${prev}</div></div>`;
     }).join('') + `</div>`;
     return;
@@ -167,7 +172,7 @@ function renderLedger(){
       const rec = proving ? (onchain
         ? `<div class="areceipt">anchored<br>txn LIM…${(0x4002+i).toString(16).toUpperCase()}</div>`
         : `<div class="areceipt none">local-first<br>not anchored</div>`) : '';
-      const sha = e[3] || `${(0x7d4b+i*131).toString(16).slice(0,4)}…${(0xa284-i*97).toString(16).slice(0,4)}`;
+      const sha = e[3] || '—';
       return `<div class="lrow"><div class="lpage ${k}"><div class="lh"><span class="lk">${lab}</span><span class="ls">${seal}</span></div><div class="lb">${e[1]}</div><div class="lf">${e[0]} · sha ${sha}</div></div>${rec}</div>`;
     }).join('');
 }
