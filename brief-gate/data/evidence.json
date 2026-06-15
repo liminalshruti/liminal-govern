@@ -1,0 +1,13 @@
+{
+  "comment": "Evidence the adversarial reviewer cross-checks claims against. PR-103 contradicts the brief's claim #2 (the calendar-sync 'waste' is actually product engineering) — the M1 self-catch.",
+  "pr_evidence": [
+    {
+      "pr_id": "PR-103",
+      "employee": "Priya",
+      "title": "calendar-sync feature: Google Calendar API integration + UI",
+      "workstream": "product",
+      "refutes_claim_about": "calendar-sync",
+      "proves": "real product engineering on the approved track, not routine admin"
+    }
+  ]
+}

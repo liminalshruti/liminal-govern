@@ -31,3 +31,7 @@ vault.db
 
 # claude
 .claude/settings.local.json
+
+# Brief Gate M1 — generated, regenerable
+brief-gate/out/*.db
+brief-gate/out/report.json
