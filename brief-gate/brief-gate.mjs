@@ -22,7 +22,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { ProvenanceLog, anchorLocal } from "../provenance/dist/src/index.js";
 import { pickReviewer, mockReviewer } from "./reviewer.mjs";
+import { pickExtractor, parserExtractor } from "./extractor.mjs";
 import { seal } from "./seal.mjs";
+import { recordSeal, findPriorJudgments } from "./vault.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -35,20 +37,14 @@ const outPath = process.argv[4] || join(__dirname, "out/report.json");
 const briefText = readFileSync(briefPath, "utf8");
 const evidence = JSON.parse(readFileSync(evidencePath, "utf8"));
 
-// ── 2 · extract candidate claims from the brief prose ───────────────────────────────────────────
-// M1 extraction is deterministic: pull the numbered "1. … 2. …" claim list from the brief. (M4
-// generalizes this to an AI extraction stage for free-form briefs; the loop downstream is identical.)
-function extractClaims(text) {
-  const claims = [];
-  const re = /^\s*(\d+)\.\s+(.+?)(?=\n\s*\d+\.\s|\n*$)/gms;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const body = m[2].replace(/\s+/g, " ").trim();
-    claims.push({ id: `C${m[1]}`, text: body, state: "candidate" });
-  }
-  return claims;
-}
-const claims = extractClaims(briefText);
+// ── 2 · extract candidate claims (M4 seam): live AI for free-form briefs, OR deterministic parser ─
+// The extractor changes HOW claims are pulled — never the downstream loop. Live (Opus 4.8) when
+// ANTHROPIC_API_KEY is set (handles free-form prose); deterministic parser otherwise (the test path,
+// no model round-trip). BRIEF_GATE_EXTRACTOR=parser forces deterministic.
+const forceParser = process.env.BRIEF_GATE_EXTRACTOR === "parser";
+const extractor = pickExtractor(forceParser ? parserExtractor : undefined);
+const extractorMode = extractor === parserExtractor ? "deterministic (parser)" : "live (claude-opus-4-8)";
+const claims = await extractor(briefText);
 
 // ── 3 · adversarial review (M2 seam): drop claims contradicted by evidence ──────────────────────
 // THE REVIEWER IS PLUGGABLE — live Opus 4.8 (demo) OR deterministic mock (test). It changes HOW the
@@ -107,11 +103,20 @@ for (const c of claims) {
   judgments.push({ claim_id: c.id, text: c.text, packet_hash: ev.packet_hash, prev_hash: ev.prev_hash });
 }
 
+// ── 4b · M4 re-entry: surface prior Judgments this brief's claims reference ──────────────────────
+// The vault compounds: a new brief can re-enter a Judgment ratified in a PRIOR brief ("this was
+// ruled on last month"). M4 reads the persistent vault and matches surviving claims to prior seals.
+const vaultPath = process.argv[6] || join(__dirname, "out/vault.json");
+const reEntries = findPriorJudgments(vaultPath, judgments);
+
 // ── 5 · emit the report (deterministic) ─────────────────────────────────────────────────────────
+const briefName = (briefPath.split("/").pop()) || "brief.md";
 const dropped = claims.filter((c) => c.state === "dropped");
 const report = {
-  brief: "sample-brief.md",
+  brief: briefName,
+  extractor_mode: extractorMode,
   reviewer_mode: reviewerMode,
+  re_entries: reEntries, // prior Judgments this brief references (the vault compounding)
   total_claims: claims.length,
   surviving_count: judgments.length,
   dropped_count: dropped.length,
@@ -130,10 +135,18 @@ log.close();
 // ratify/amend/defer — a 'pending' (un-decided) Judgment blocks export entirely.
 const dispositionsPath = process.argv[5] || join(__dirname, "data/dispositions.json");
 let sealResult = { exportable: false, blocked_reason: "no dispositions provided — all Judgments pending", summary: null, ratified_brief: null };
+// Load dispositions if present + parseable. A missing/empty/bad file → no dispositions (every
+// Judgment stays pending → not exportable). Fail-safe, never crash — and the gate stays closed.
+let dispositions = [];
 if (existsSync(dispositionsPath)) {
-  const { dispositions } = JSON.parse(readFileSync(dispositionsPath, "utf8"));
-  sealResult = seal(report, dispositions || []);
+  try {
+    const raw = readFileSync(dispositionsPath, "utf8").trim();
+    if (raw) dispositions = JSON.parse(raw).dispositions || [];
+  } catch {
+    dispositions = []; // unparseable → no dispositions → fail closed (not exportable)
+  }
 }
+sealResult = seal(report, dispositions);
 report.ratification = {
   exportable: sealResult.exportable,
   blocked_reason: sealResult.blocked_reason,
@@ -141,12 +154,22 @@ report.ratification = {
   ratified_brief: sealResult.ratified_brief, // null unless exportable
 };
 
+// ── 5c · M4 vault: record the sealed brief so future briefs can re-enter its Judgments ───────────
+// Only an EXPORTABLE (fully-ratified) brief enters the vault — the boundary again: nothing
+// un-ratified compounds into the trusted record. Set BRIEF_GATE_NO_VAULT=1 to skip (tests).
+if (sealResult.exportable && process.env.BRIEF_GATE_NO_VAULT !== "1") {
+  recordSeal(vaultPath, sealResult.ratified_brief, { briefName, sealedAt: sealResult.ratified_brief.sealed_at });
+  report.vault_recorded = true;
+}
+
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(report, null, 2) + "\n");
 
 // ── 6 · console summary ─────────────────────────────────────────────────────────────────────────
-console.log(`brief-gate: ${briefPath.replace(root + "/", "")}  ·  reviewer: ${reviewerMode}`);
+console.log(`brief-gate: ${briefPath.replace(root + "/", "")}  ·  extractor: ${extractorMode}  ·  reviewer: ${reviewerMode}`);
 console.log(`  extracted ${report.total_claims} claims`);
+for (const re of report.re_entries)
+  console.log(`  ↩ re-entry: ${re.claim_id} references a prior Judgment (${re.prior.prior_claim_id} from ${re.prior.from_brief}, ${re.prior.disposition})`);
 console.log(`  adversarial review dropped ${report.dropped_count}: ${report.self_catch ? "✓ self-catch" : "(none)"}`);
 for (const d of report.dropped) console.log(`    ✗ ${d.claim_id}: ${d.drop_reason}`);
 console.log(`  ${report.surviving_count} surviving claims → Judgments anchored to the chain`);

@@ -92,10 +92,38 @@ operational. That is "correction **and** ratification" in code. Proven by `tests
 `amend` is **append-only** — it records `from → to` and preserves the original (the correction
 stream, never a silent overwrite).
 
-## What's NOT done yet (M4)
+## M4 — arbitrary-brief extraction + prior-Judgment re-entry (done)
 
-M4 = arbitrary-brief **AI extraction** (free-form briefs, not the numbered-list parser) +
-**prior-Judgment re-entry** (a new brief cites a Judgment ratified in a prior brief). The unit is
-**a Judgment** throughout; the artifact is a **Ratified Brief**. The ratification **UI** (the visual
-ratify/amend/drop/defer surface) is the front-end of M3's logic — built when the surface-host
-(govern cockpit vs. liminal-desktop) is decided.
+Two seams that generalize the wedge and make the vault **compound**:
+
+- **Extraction seam** (`extractor.mjs`): **live Opus 4.8** for free-form briefs / **deterministic
+  parser** for the tests (same pattern as the reviewer). The parser returns 0 claims on free-form
+  prose — *that is why the live extractor exists* (it reads arbitrary briefs); the deterministic
+  path keeps the tests model-free.
+- **Re-entry** (`vault.mjs`): sealed Judgments persist across briefs. A new brief's claims **re-enter**
+  Judgments ratified in a **prior** brief — *"this was ruled on last month."* Only **exportable**
+  (fully-ratified) briefs enter the vault (the boundary again: nothing un-ratified compounds).
+
+```bash
+# the vault compounds across briefs:
+node brief-gate/brief-gate.mjs brief-gate/data/sample-brief.md         # June → seals → vault
+node brief-gate/brief-gate.mjs brief-gate/data/sample-brief-july.md \
+     brief-gate/data/evidence.json brief-gate/out/report-july.json "" brief-gate/out/vault.json
+#   ↩ re-entry: C1 references a prior Judgment (C3 from sample-brief.md, amend)
+```
+
+This is "the system remembers what survived correction" (the moat) at M4 grade. Proven by
+`tests/m4-extract-reentry.test.mjs`.
+
+## The complete wedge — what runs today
+
+`extract → adversarial-drop → anchor → ratify → seal → vault → re-enter`, with fail-closed
+boundaries at **correction** (M1/M2) and **ratification** (M3). The unit is **a Judgment**; the
+artifact is a **Ratified Brief**; the vault **compounds** (M4). **27 tests** across the four
+milestones; govern's existing suite unaffected.
+
+**Still ahead (not milestones — the surface + live paths):** the ratification **UI** (the visual
+ratify/amend/drop/defer surface — built when the surface-host, govern cockpit vs. liminal-desktop,
+is decided); and running the **live** Opus 4.8 extractor + reviewer (needs `@anthropic-ai/sdk` at
+the govern root + `ANTHROPIC_API_KEY` — the seams + boundaries are tested, the live calls are one
+`npm i` away).
