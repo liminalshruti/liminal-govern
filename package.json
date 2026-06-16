@@ -11,6 +11,6 @@
     "test:provenance": "npm --prefix provenance test",
     "test:engine": "npm --prefix engine test",
     "brief-gate": "node brief-gate/brief-gate.mjs",
-    "test:brief-gate": "node --test brief-gate/tests/m1.test.mjs"
+    "test:brief-gate": "node --test brief-gate/tests/*.test.mjs"
   }
 }

@@ -21,6 +21,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { ProvenanceLog, anchorLocal } from "../provenance/dist/src/index.js";
+import { pickReviewer, mockReviewer } from "./reviewer.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -48,28 +49,18 @@ function extractClaims(text) {
 }
 const claims = extractClaims(briefText);
 
-// ── 3 · adversarial review: drop claims contradicted by evidence ────────────────────────────────
-// A claim is REFUTED if a piece of evidence proves the thing it asserts is false. M1 wires the
-// PR-103 contradiction (the brief's "$162 calendar waste" is refuted because PR-103 proves the
-// calendar-sync work is real product engineering). Same shape as govern's E14 self-catch, on prose.
-function reviewClaim(claim, prEvidence) {
-  for (const pr of prEvidence) {
-    const subject = pr.refutes_claim_about?.toLowerCase();
-    const claimL = claim.text.toLowerCase();
-    // The claim is about the same subject AND asserts it's waste/admin → the PR refutes it.
-    const assertsWaste = /\b(wast|admin|should not run|belongs on|routine)\b/.test(claimL);
-    if (subject && claimL.includes(subject) && assertsWaste) {
-      return {
-        survives: false,
-        refuted_by: pr.pr_id,
-        reason: `Refuted by adversarial review: ${pr.pr_id} (${pr.employee}, "${pr.title}") proves the ${subject} work is ${pr.proves}. The claim that it is waste/admin is dropped.`,
-      };
-    }
-  }
-  return { survives: true };
-}
+// ── 3 · adversarial review (M2 seam): drop claims contradicted by evidence ──────────────────────
+// THE REVIEWER IS PLUGGABLE — live Opus 4.8 (demo) OR deterministic mock (test). It changes HOW the
+// survives/drops decision is made, NEVER WHETHER the boundary below holds. Both return the same
+// verdict shape { survives, refuted_by?, reason }. Selection: live if ANTHROPIC_API_KEY is set, else
+// the deterministic mock — so the acceptance test passes with no model round-trip.
+// `reviewer` can be injected (tests force mockReviewer; the demo can force liveReviewer).
+const forceMock = process.env.BRIEF_GATE_REVIEWER === "mock";
+const reviewer = pickReviewer(forceMock ? mockReviewer : undefined);
+const reviewerMode = reviewer === mockReviewer ? "deterministic" : "live (claude-opus-4-8)";
+const prEvidence = evidence.pr_evidence || [];
 for (const c of claims) {
-  const verdict = reviewClaim(c, evidence.pr_evidence || []);
+  const verdict = await reviewer(c, prEvidence); // ← await: liveReviewer is async (mock awaits fine)
   c.verdict = verdict;
   c.state = verdict.survives ? "survived" : "dropped";
 }
@@ -119,6 +110,7 @@ for (const c of claims) {
 const dropped = claims.filter((c) => c.state === "dropped");
 const report = {
   brief: "sample-brief.md",
+  reviewer_mode: reviewerMode,
   total_claims: claims.length,
   surviving_count: judgments.length,
   dropped_count: dropped.length,
@@ -133,7 +125,7 @@ writeFileSync(outPath, JSON.stringify(report, null, 2) + "\n");
 log.close();
 
 // ── 6 · console summary ─────────────────────────────────────────────────────────────────────────
-console.log(`brief-gate M1: ${briefPath.replace(root + "/", "")}`);
+console.log(`brief-gate: ${briefPath.replace(root + "/", "")}  ·  reviewer: ${reviewerMode}`);
 console.log(`  extracted ${report.total_claims} claims`);
 console.log(`  adversarial review dropped ${report.dropped_count}: ${report.self_catch ? "✓ self-catch" : "(none)"}`);
 for (const d of report.dropped) console.log(`    ✗ ${d.claim_id}: ${d.drop_reason}`);

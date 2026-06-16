@@ -48,9 +48,30 @@ provenance chain: VERIFIED
 | `tests/m1.test.mjs` | 6 acceptance tests incl. the fail-closed boundary |
 | `out/` | generated (gitignored): the provenance db + `report.json` |
 
-## What M1 is NOT (next milestones)
+## M2 — the live adversarial reviewer (done)
 
-M1 is the **deterministic** loop (the live Opus 4.8 adversarial reviewer is **M2**, mirroring how
-govern's `spend-audit.mjs` encodes the same drop the live reviewer reaches). M2 also adds the
-per-claim **ratification UI** (ratify/amend/drop/defer). M3 = seal & export fail-closed. M4 =
+The reviewer is now a **pluggable seam** (`reviewer.mjs`): **live Opus 4.8 for the demo,
+deterministic mock for the tests.**
+
+```bash
+npm run brief-gate                         # deterministic (no key) OR live if ANTHROPIC_API_KEY is set
+ANTHROPIC_API_KEY=sk-... npm run brief-gate # LIVE: real Opus 4.8 adversarial reviewer (forced-tool verdict)
+BRIEF_GATE_REVIEWER=mock npm run brief-gate # force deterministic
+```
+
+**The M2 invariant (the load-bearing guarantee):** the reviewer changes *how* the survives/drops
+decision is made — **never whether the fail-closed boundary holds.** Both reviewers return the same
+verdict shape `{ survives, refuted_by?, reason }`; the gate's boundary code consumes it identically.
+A dropped claim still produces **no Judgment → no anchor → no export**, regardless of which reviewer
+ran (or whether the live model errors — it **fails closed**: an unreviewable claim is dropped, never
+silently passed). Proven by `tests/m2-reviewer.test.mjs` ("a dropped claim is never a Judgment —
+regardless of WHY" + "FAIL CLOSED"). The acceptance test runs the **deterministic** reviewer, so it
+passes with **no live model round-trip** (`npm run test:brief-gate`).
+
+The AI is a pluggable input to a deterministic boundary — not the boundary itself. A wrong model
+produces a wrong survives/drops *call*, never a *broken boundary*.
+
+## What's NOT done yet (next milestones)
+
+M3 = per-claim **ratification UI** (ratify/amend/drop/defer) + seal & export fail-closed. M4 =
 arbitrary-brief AI extraction + prior-Judgment re-entry. The unit is **a Judgment** throughout.

@@ -17,7 +17,13 @@ const mjs = join(briefGateDir, "brief-gate.mjs");
 const outPath = join(briefGateDir, "out/report.json");
 
 function run() {
-  execFileSync("node", [mjs], { cwd: resolve(briefGateDir, ".."), stdio: "pipe" });
+  // Force the DETERMINISTIC reviewer — the acceptance test must pass with NO live model round-trip.
+  // (The live Opus 4.8 reviewer is the demo path; the boundary it feeds is identical either way.)
+  execFileSync("node", [mjs], {
+    cwd: resolve(briefGateDir, ".."),
+    stdio: "pipe",
+    env: { ...process.env, BRIEF_GATE_REVIEWER: "mock" },
+  });
   return JSON.parse(readFileSync(outPath, "utf8"));
 }
 
