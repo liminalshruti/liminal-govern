@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { ProvenanceLog, anchorLocal } from "../provenance/dist/src/index.js";
 import { pickReviewer, mockReviewer } from "./reviewer.mjs";
+import { seal } from "./seal.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -120,9 +121,28 @@ const report = {
   self_catch: dropped.length > 0 ? dropped[0].verdict.reason : null,
   chain_verified: log.verifyChain().ok,
 };
+log.close();
+
+// ── 5b · M3: per-claim ratification + seal/export (fail-closed) ──────────────────────────────────
+// The surviving (corrected) Judgments are still only DRAFT. They become operational only after the
+// user ratifies them per-claim. Dispositions come from the ratification UI (a later milestone);
+// here they're loaded from a file. THE BOUNDARY (deepened): exportable ONLY IF every Judgment is
+// ratify/amend/defer — a 'pending' (un-decided) Judgment blocks export entirely.
+const dispositionsPath = process.argv[5] || join(__dirname, "data/dispositions.json");
+let sealResult = { exportable: false, blocked_reason: "no dispositions provided — all Judgments pending", summary: null, ratified_brief: null };
+if (existsSync(dispositionsPath)) {
+  const { dispositions } = JSON.parse(readFileSync(dispositionsPath, "utf8"));
+  sealResult = seal(report, dispositions || []);
+}
+report.ratification = {
+  exportable: sealResult.exportable,
+  blocked_reason: sealResult.blocked_reason,
+  summary: sealResult.summary,
+  ratified_brief: sealResult.ratified_brief, // null unless exportable
+};
+
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(report, null, 2) + "\n");
-log.close();
 
 // ── 6 · console summary ─────────────────────────────────────────────────────────────────────────
 console.log(`brief-gate: ${briefPath.replace(root + "/", "")}  ·  reviewer: ${reviewerMode}`);
@@ -130,4 +150,11 @@ console.log(`  extracted ${report.total_claims} claims`);
 console.log(`  adversarial review dropped ${report.dropped_count}: ${report.self_catch ? "✓ self-catch" : "(none)"}`);
 for (const d of report.dropped) console.log(`    ✗ ${d.claim_id}: ${d.drop_reason}`);
 console.log(`  ${report.surviving_count} surviving claims → Judgments anchored to the chain`);
-console.log(`  provenance chain: ${report.chain_verified ? "VERIFIED" : "FAILED"} → ${outPath.replace(root + "/", "")}`);
+console.log(`  provenance chain: ${report.chain_verified ? "VERIFIED" : "FAILED"}`);
+const r = report.ratification;
+if (r.exportable) {
+  console.log(`  ratification: ${r.summary.sealable} Judgments ratified → ✓ SEALED, exportable (sig ${r.ratified_brief.signature.slice(0, 12)}…)`);
+} else {
+  console.log(`  ratification: ✗ NOT exportable — ${r.blocked_reason}`);
+}
+console.log(`  → ${outPath.replace(root + "/", "")}`);

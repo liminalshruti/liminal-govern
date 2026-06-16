@@ -71,7 +71,31 @@ passes with **no live model round-trip** (`npm run test:brief-gate`).
 The AI is a pluggable input to a deterministic boundary — not the boundary itself. A wrong model
 produces a wrong survives/drops *call*, never a *broken boundary*.
 
-## What's NOT done yet (next milestones)
+## M3 — ratification + seal/export, fail-closed (done)
 
-M3 = per-claim **ratification UI** (ratify/amend/drop/defer) + seal & export fail-closed. M4 =
-arbitrary-brief AI extraction + prior-Judgment re-entry. The unit is **a Judgment** throughout.
+The surviving (corrected) Judgments are still only **draft**. M3 adds **per-claim ratification**
+(`ratify` / `amend` / `drop` / `defer`) and the **seal** step. Dispositions come from
+`data/dispositions.json` (what the ratification UI will produce — the UI is a later milestone; M3
+proves the seal logic + the gate).
+
+```bash
+npm run brief-gate   # → correction (M1/M2) → ratification (M3) → SEALED, exportable Ratified Brief
+```
+
+**The M3 boundary (the wedge completed):** survived-review is **not enough** to export. A
+**Ratified Brief** is exportable **only if every Judgment is ratify/amend/defer** — a **pending**
+(un-ratified) Judgment **blocks export entirely**. So a claim must survive **both** gates —
+*correction* (M1/M2: adversarial review) **and** *ratification* (M3: a human decides) — to become
+operational. That is "correction **and** ratification" in code. Proven by `tests/m3-seal.test.mjs`
+("FAIL CLOSED: a pending Judgment blocks export").
+
+`amend` is **append-only** — it records `from → to` and preserves the original (the correction
+stream, never a silent overwrite).
+
+## What's NOT done yet (M4)
+
+M4 = arbitrary-brief **AI extraction** (free-form briefs, not the numbered-list parser) +
+**prior-Judgment re-entry** (a new brief cites a Judgment ratified in a prior brief). The unit is
+**a Judgment** throughout; the artifact is a **Ratified Brief**. The ratification **UI** (the visual
+ratify/amend/drop/defer surface) is the front-end of M3's logic — built when the surface-host
+(govern cockpit vs. liminal-desktop) is decided.

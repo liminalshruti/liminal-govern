@@ -1,0 +1,8 @@
+{
+  "comment": "Per-claim ratification decisions — what the M3 ratification UI will produce (UI is a later milestone; M3 proves the seal logic + the fail-closed boundary). Each surviving Judgment gets a disposition: ratify | amend | defer | drop. A claim with NO disposition is 'pending' and CANNOT export.",
+  "dispositions": [
+    { "claim_id": "C1", "disposition": "ratify" },
+    { "claim_id": "C3", "disposition": "amend", "amended_text": "Security-hardening spend is under-allocated at 24% vs the 40% OKR target; recommend reallocating one engineer's Opus budget next month." },
+    { "claim_id": "C4", "disposition": "ratify" }
+  ]
+}
